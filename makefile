@@ -4,7 +4,7 @@ shared.o: shared.c shared.h
 	gcc -Wall -c shared.c
 
 attacker: attacker.o shared.o
-	gcc -Wall attacker.o shared.o -o attacker
+	gcc -Wall -pthread attacker.o shared.o -o attacker
 
 attacker.o: attacker.c shared.h
 	gcc -Wall -c attacker.c

@@ -20,7 +20,8 @@
 #define IPV4_HEADER_LENGTH 20
 #define UDP_HEADER_LENGTH 8
 
-#define INTERFACE "eth0"
+//#define INTERFACE "eth0"
+#define INTERFACE "lo"
 
 int inDisobedientMode = FALSE;
 int spoofIPAddress = FALSE;
@@ -66,7 +67,7 @@ int main(int argc, char** argv){
 
 
 	int sockfd;
-	char destIPChar[INET_ADDRSTRLEN];//TODO: dest ip?? - or use getaddrinfo()? not finished
+	char *destIPChar = "127.0.0.1";//TODO: dest ip?? - or use getaddrinfo()? not finished
 	char srcIPChar[INET_ADDRSTRLEN];
 	//struct addrinfo hints, *res, *p;
 	struct sockaddr_in victimAddress;
@@ -93,6 +94,7 @@ int main(int argc, char** argv){
 		tmp = ifaddr;
 		while(tmp){
 			if(tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET){
+				printf("interface name %s\n", tmp->ifa_name);
 				if(strcmp(tmp->ifa_name, INTERFACE) == 0){
 					strcpy(srcIPChar, inet_ntoa(((struct sockaddr_in *)tmp->ifa_addr)->sin_addr));
 					break;
@@ -134,7 +136,7 @@ int main(int argc, char** argv){
 		reportError("inet_pton for source ip address failed");
 	}
 	//dest ip address
-	if(inet_pton(AF_INET, destIPChar, &(iphdr.ip_src)) != 1) {
+	if(inet_pton(AF_INET, destIPChar, &(iphdr.ip_dst)) != 1) {
 		reportError("inet_pton for destination ip address failed");
 	}
 	iphdr.ip_sum = 0;
@@ -160,35 +162,34 @@ int main(int argc, char** argv){
 	}
 
 	//bind socket to interface index??? TODO
-
 	//send packet
-	if(sendto(sockfd, packet, IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH, 0, 
-						(struct sockaddr*)&victimAddress, sizeof(victimAddress)) < 0){
-		printf("Unable to send packet.\n");
-	} else {
-		printf("Packet sent.\n");
+
+
+
+	//TODO replace the above sendto() with the logic below
+
+	int noComplaintsFromGateway = TRUE;
+	pthread_t thread;
+	if(pthread_create(&thread, NULL, listenToComplaints, &noComplaintsFromGateway) != 0){
+		reportError("Error creating thead\n");
 	}
 
+	while(1){
+		if(inDisobedientMode == TRUE || noComplaintsFromGateway == FALSE){
+			if(sendto(sockfd, packet, IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH, 0, 
+						(struct sockaddr*)&victimAddress, sizeof(victimAddress)) < 0){
+				printf("Unable to send packet.\n");
+			} else {
+				printf("Packet sent.\n");
+			}
+			//do something in http://stackoverflow.com/questions/25327519/how-to-send-udp-packet-every-1-ms to sleep
 
-	// TODO replace the above sendto() with the logic below
+		}
+	}
 
-	// int noComplaintsFromGateway = TRUE;
-	// pthread_t thread;
-	// if(pthread_create(&thread, NULL, listenToComplaints, &noComplaintsFromGateway)){
-	// 	errorMessage("Error creating thead\n");
-	// }
-
-	// while(1){
-	// 	if(inDisobedientMode == TRUE || noComplaintsFromGateway == FALSE){
-	// 		sendto();
-	// 		do something in http://stackoverflow.com/questions/25327519/how-to-send-udp-packet-every-1-ms to sleep
-
-	// 	}
-	// }
-
-	// if(pthread_join(thread, NULL)){
-	// 	errorMessage("Error joining thread\n");
-	// }
+	if(pthread_join(thread, NULL)){
+		reportError("Error joining thread\n");
+	}
 	
 //-------------------
 
