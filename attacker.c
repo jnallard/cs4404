@@ -10,14 +10,14 @@
 #include <netinet/in.h> 
 #include <netinet/ip.h>
 #include <netinet/udp.h>
-#include <pthread.h>
 #include "shared.h"
 
 
 #define TRUE 0
 #define FALSE 1
-#define ATTACKER_PORT 4404
+#define ATTACKER_PORT 4405
 #define VICTIM_PORT 4404
+#define COMPLAINT_LISTENING_PORT 4404
 
 #define IPV4_HEADER_LENGTH 20
 #define UDP_HEADER_LENGTH 8
@@ -34,14 +34,6 @@ void reportError(char* errorMessage){
 	exit(1);
 }
 
-void *listenToComplaints(void *noComplaintsFromGateway){
-	//enter a while loop listening for message from attacker gateway
-	//break loop after received
-	*(int*)noComplaintsFromGateway = FALSE; 
-
-	return NULL;
-}
-
 uint16_t ipChecksum(){ //TODO
 	return 0;
 }
@@ -53,7 +45,7 @@ uint16_t udpChecksum(){ //TODO
 
 int main(int argc, char** argv){
 	if(argc == 1){
-		reportError("Usage: attackerProgram true/false [spoof IP address]");
+		reportError("Usage: sudo attacker true/false [spoof IP address]");
 	}
 
 	//determine obedient/disobedient mode
@@ -73,6 +65,8 @@ int main(int argc, char** argv){
 	char srcIPChar[INET_ADDRSTRLEN];
 	//struct addrinfo hints, *res, *p;
 	struct sockaddr_in victimAddress;
+
+	printf("Destination IP Address: %s\n", destIPChar);
 
 
 	//network setup
@@ -169,15 +163,17 @@ int main(int argc, char** argv){
 
 
 	//TODO replace the above sendto() with the logic below
-
-	int noComplaintsFromGateway = TRUE;
 	pthread_t thread;
-	if(pthread_create(&thread, NULL, listenToComplaints, &noComplaintsFromGateway) != 0){
+	int listeningPortNumber = COMPLAINT_LISTENING_PORT;
+	if(pthread_create(&thread, NULL, listenToAITFMessage, &listeningPortNumber) != 0){
 		reportError("Error creating thead\n");
 	}
 
+	Flow* receivedFlow = NULL;
+
 	while(1){
-		if(inDisobedientMode == TRUE || noComplaintsFromGateway == FALSE){
+		//either the attacker is in disobedient mode, or there is no complaint received
+		if(inDisobedientMode == TRUE || (receivedFlow = receiveAITFMessage()) == NULL){
 			if(sendto(sockfd, packet, IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH, 0, 
 						(struct sockaddr*)&victimAddress, sizeof(victimAddress)) < 0){
 				printf("Unable to send packet.\n");
@@ -187,6 +183,12 @@ int main(int argc, char** argv){
 			//wait for T-send before resend the packet
 			wait(T_SEND);
 
+		} else if(receivedFlow->messageType == AITF_BLOCKING_REQUEST) {
+			printf("Blocking request received, attacker exits.\n");
+			break;
+
+		} else {
+			printf("Error receiving AITF message: message type %d\n", receivedFlow->messageType);
 		}
 	}
 
