@@ -16,7 +16,7 @@ victim.o: victim.c shared.h
 	gcc -Wall -c victim.c
 
 routeRecord: routeRecord.o shared.o
-	gcc -Wall routeRecord.o shared.o -o routeRecord
+	gcc -Wall routeRecord.o shared.o -lnfnetlink -lnetfilter_queue -o routeRecord
 
 routeRecord.o: routeRecord.c shared.h
 	gcc -Wall -c routeRecord.c
