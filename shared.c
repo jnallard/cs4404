@@ -94,7 +94,7 @@ Flow* createFlowStruct(struct in_addr* victimIP, struct in_addr* attackerIP,
 }
 
 //This function is used to send flow struct over the network    TODO unsure
-int sendFlowStruct(struct in_addr* destIP, struct Flow* flow){
+int sendFlowStruct(struct in_addr* destIP, Flow* flow){
 	int sockfd;
 	char* flowString = writeFlowStructAsNetworkBuffer(flow);
 
@@ -224,6 +224,76 @@ RouteRecord* readRouteRecord(char* networkLayerPacketInfo){
 
 	return rr;
 }
+
+//initialize the AITF message list to point to null
+void initializeAITFMessageList(){
+	AITFMessageListHead = NULL;
+	messageListPtr = AITFMessageListHead;
+}
+
+//TODO
+void* listenToAITFMessage(){
+	return NULL;
+}
+
+//return the next element that the message list pointer currently
+//points to; return null if there is no new messages or the list
+//is empty. 
+//Also get rid of the messages that has already been handled. 
+Flow* receiveAITFMessage(){
+	Flow* returnedMessage = NULL;
+	if(messageListPtr != NULL && messageListPtr->next != NULL){
+		messageListPtr = messageListPtr->next;
+		returnedMessage = messageListPtr->flow;
+
+		//and free the memory taken by messages that have already
+		//been handled
+		while(AITFMessageListHead != messageListPtr){
+			Flow* tmp = AITFMessageListHead->flow;
+			AITFMessageListHead = AITFMessageListHead->next;
+			freeFlow(tmp);
+		}
+	}
+
+	return returnedMessage;
+	
+}
+
+//update AITF message list to add a new entry to its tail
+void updateAITFMessageList(Flow* newAITFMessage){
+	AITFMessageListEntry *newEntry = (AITFMessageListEntry *)malloc(sizeof(AITFMessageListEntry));
+	newEntry->flow = newAITFMessage;
+	newEntry->next = NULL;
+
+	if(AITFMessageListHead == NULL){
+		AITFMessageListHead = newEntry;
+	} else {
+		AITFMessageListEntry *endPointer = messageListPtr;
+		while(endPointer->next != NULL){
+			endPointer = endPointer->next;
+		}
+		endPointer->next = newEntry;
+
+	}
+}
+
+void freeFlow(Flow *flow) {
+	free(flow->attackerIP);
+	free(flow->victimIP);
+	freeRouteRecord(flow->routeRecord);
+	free(flow);
+}
+
+void freeRouteRecord(RouteRecord *rr){
+	free(rr->slot1);
+	free(rr->slot2);
+	free(rr->slot3);
+	free(rr->slot4);
+	free(rr);
+}
+
+
+
 
 
 // int createNonce(int sourceIP, int destIP){
