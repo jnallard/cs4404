@@ -1,7 +1,7 @@
 all: clean shared.o attacker victim routeRecord
 
 shared.o: shared.c shared.h
-	gcc -Wall -c shared.c
+	gcc -Wall -pthread -c shared.c
 
 attacker: attacker.o shared.o
 	gcc -Wall -pthread attacker.o shared.o -o attacker

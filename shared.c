@@ -225,22 +225,85 @@ RouteRecord* readRouteRecord(char* networkLayerPacketInfo){
 	return rr;
 }
 
-//initialize the AITF message list to point to null
+//initialize the AITF message list to point to null and the lock
 void initializeAITFMessageList(){
 	AITFMessageListHead = NULL;
 	messageListPtr = AITFMessageListHead;
+	lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 }
 
 //TODO
-void* listenToAITFMessage(){
+//Function ran by newly created thread to listen to incoming complaints
+void* listenToAITFMessage(void *portNum){
+	initializeAITFMessageList();
+	int sockfd;
+	int port = *(int*)portNum;
+
+
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if(sockfd < 0){
+		printf("Error in socket() when listening to AITF message.\n");
+	}
+
+	struct sockaddr_in addr;
+	bzero(&addr, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
+	addr.sin_addr.s_addr = INADDR_ANY;//any address - not sure TODO
+
+
+	if(bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0){
+		printf("Error in bind() when listening to AITF message. \n");
+	}
+
+	if(listen(sockfd, 20) == -1){
+		printf("Error in listen() when listening to AITF message. \n");
+	}
+
+	//fcntl(sockfd, F_SETFL, O_NONBLOCK); //make the socket non-block
+
+	while(1){
+		printf("enter loop for receiving packet\n");
+
+		int clientfd;
+		struct sockaddr_storage client_addr;
+		int addrlen = sizeof(client_addr);
+		clientfd = accept(sockfd, (struct sockaddr*)&client_addr, (socklen_t * __restrict__)&addrlen);
+	 	if(clientfd == -1) {
+	 		printf("Error in accept() when listening to AITF message. \n");
+	 	} else {
+	 		printf("accept() called\n");
+	 	}
+
+	 	char buf[2000];
+	 	int count;
+	 	memset(buf, 0, sizeof buf);
+	 	count = recv(clientfd, buf, sizeof buf, 0);
+	 	buf[count] = '\0';
+	 	printf("packet received: %s\n", buf);
+
+	 	//TODO - handle AITF
+
+	}
+
+
+
+
+
+
 	return NULL;
 }
 
 //return the next element that the message list pointer currently
 //points to; return null if there is no new messages or the list
 //is empty. 
-//Also get rid of the messages that has already been handled. 
+//Also free memory of the messages that has already been handled. 
 Flow* receiveAITFMessage(){
+	//lock the AITF message list
+	pthread_mutex_lock(&(lock));
+	// printf("Start receiving AITF message\n");
+
+
 	Flow* returnedMessage = NULL;
 	if(messageListPtr != NULL && messageListPtr->next != NULL){
 		messageListPtr = messageListPtr->next;
@@ -255,6 +318,10 @@ Flow* receiveAITFMessage(){
 		}
 	}
 
+	pthread_mutex_unlock(&(lock));
+	// printf("Finish receiving AITF message\n");
+
+
 	return returnedMessage;
 	
 }
@@ -264,6 +331,10 @@ void updateAITFMessageList(Flow* newAITFMessage){
 	AITFMessageListEntry *newEntry = (AITFMessageListEntry *)malloc(sizeof(AITFMessageListEntry));
 	newEntry->flow = newAITFMessage;
 	newEntry->next = NULL;
+
+	pthread_mutex_lock(&(lock));
+	printf("Start updating AITF message\n");
+
 
 	if(AITFMessageListHead == NULL){
 		AITFMessageListHead = newEntry;
@@ -275,6 +346,10 @@ void updateAITFMessageList(Flow* newAITFMessage){
 		endPointer->next = newEntry;
 
 	}
+
+	pthread_mutex_unlock(&(lock));
+	printf("Finish updating AITF message\n");
+
 }
 
 void freeFlow(Flow *flow) {

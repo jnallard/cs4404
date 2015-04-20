@@ -3,6 +3,9 @@
 
 #include <sys/time.h>
 #include <netinet/in.h>
+#include <pthread.h>
+
+
 
 
 #define ROUTE_RECORD_SLOT_SIZE 12
@@ -18,6 +21,11 @@
 #define T_SEND 100
 #define COMPLAINING_THRESHOLD 20
 
+//Four types of AITF message
+#define AITF_BLOCKING_REQUEST 1
+#define AITF_REQUEST_REPLY 2
+#define AITF_REPLY_ACKNOWLEDGEMENT 3
+#define AITF_ESCALATION_REQUEST 4
 
 typedef struct RouteRecordSlot {
 	int ipAddress;
@@ -50,6 +58,9 @@ typedef struct AITFMessageListEntry {
 } AITFMessageListEntry;
 
 
+
+
+
 //Function for timer
 void wait(int millisecondsToWait);
 int hasTimeElapsed(struct timeval* startTime, int milliseconds);
@@ -75,8 +86,9 @@ char* writeFlowStructAsNetworkBuffer(Flow* flow);
 //handle AITF messages
 AITFMessageListEntry *AITFMessageListHead;
 AITFMessageListEntry *messageListPtr;
+pthread_mutex_t lock; //prevent race condition
 
-void* listenToAITFMessage();
+void* listenToAITFMessage(void *portNum);
 Flow* receiveAITFMessage();
 void initializeAITFMessageList();
 void updateAITFMessageList(Flow* newAITFMessage);
