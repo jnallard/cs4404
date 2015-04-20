@@ -8,6 +8,7 @@
 #include <linux/netfilter.h>
 #include <libnetfilter_queue/libipq.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
+#include "shared.h"
 
 //sudo apt-get install libnetfilter_queue_dev
 
@@ -26,11 +27,18 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		ntohs(ph->hw_protocol), ph->hook, id);
 
 		char* packet_data = (char*) calloc(1, 10000);
+		char* packet_data_2 = (char*) calloc(1, 10000);
 		int count = nfq_get_payload(nfa, &packet_data);
 		printf("count: [%d], ", count);
-		memcpy(packet_data + count, "Josh", 5);
+
+		RouteRecord* rr = createRouteRecord(2130706433, -1l);
+		char* rr_buf = writeRouteRecordAsNetworkBuffer(rr);
+
+		memcpy(packet_data_2, packet_data + 20, count - 20);
+		memcpy(packet_data + 20, rr_buf, MAX_RR_HEADER_SIZE);
+		memcpy(packet_data + 20 + MAX_RR_HEADER_SIZE, packet_data_2, count - 20);
 		printf("Modifying Packet\n\n");
-		return nfq_set_verdict(qh, id, NF_ACCEPT, count + 5, (unsigned char*) packet_data);
+		return nfq_set_verdict(qh, id, NF_ACCEPT, count + MAX_RR_HEADER_SIZE, (unsigned char*) packet_data);
 	}
 
 	printf("entering callback\n\n");
