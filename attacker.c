@@ -11,6 +11,8 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <pthread.h>
+#include "shared.h"
+
 
 #define TRUE 0
 #define FALSE 1
@@ -182,7 +184,8 @@ int main(int argc, char** argv){
 			} else {
 				printf("Packet sent.\n");
 			}
-			//do something in http://stackoverflow.com/questions/25327519/how-to-send-udp-packet-every-1-ms to sleep
+			//wait for T-send before resend the packet
+			wait(T_SEND);
 
 		}
 	}

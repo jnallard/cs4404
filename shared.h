@@ -11,6 +11,12 @@
 
 #define FLOW_SENDING_PORT "4404"
 
+//chosen value for contants; see results section
+//time are in milliseconds
+#define T_LONG 10000
+#define T_TEMP 1000
+#define T_SEND 100
+#define COMPLAINING_THRESHOLD 20
 
 
 typedef struct RouteRecordSlot {
@@ -28,7 +34,7 @@ typedef struct RouteRecord {
 
 } RouteRecord;
 
-typedef struct Flow {
+typedef struct AITFMessage {
 	struct in_addr* attackerIP;
 	struct in_addr* victimIP;
 	int nonce1;
@@ -37,6 +43,11 @@ typedef struct Flow {
 	RouteRecord* routeRecord;
 
 } Flow;
+
+typedef struct AITFMessageListEntry {
+	Flow *flow;
+	struct AITFMessageListEntry *next;
+} AITFMessageListEntry;
 
 
 //Function for timer
@@ -61,5 +72,16 @@ int createNonce(int sourceIP, int destIP);
 char* writeFlowStructAsNetworkBuffer(Flow* flow);
 
 
+//handle AITF messages
+AITFMessageListEntry *AITFMessageListHead;
+AITFMessageListEntry *messageListPtr;
 
+void* listenToAITFMessage();
+Flow* receiveAITFMessage();
+void initializeAITFMessageList();
+void updateAITFMessageList(Flow* newAITFMessage);
+
+//Free memory
+void freeFlow(Flow *flow);
+void freeRouteRecord(RouteRecord *rr);
 #endif
