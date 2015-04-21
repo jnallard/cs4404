@@ -30,7 +30,7 @@ int hasTimeElapsed(struct timeval* startTime, int milliseconds){
 
 
 //This function creates the first route record by providing IP address and the random value
-RouteRecord* createRouteRecord(int ipAddress, long randomValue){
+RouteRecord* createRouteRecord(struct in_addr* ipAddress, long randomValue){
 	//create the first slot
 	RouteRecordSlot *rrSlot = (RouteRecordSlot *)malloc(sizeof(RouteRecordSlot));
 	rrSlot->ipAddress = ipAddress;
@@ -52,7 +52,7 @@ RouteRecord* createRouteRecord(int ipAddress, long randomValue){
 }
 
 
-void addGatewayInfo(RouteRecord* routeRecord, int ipAddress, long randomValue){
+void addGatewayInfo(RouteRecord* routeRecord, struct in_addr* ipAddress, long randomValue){
 	RouteRecordSlot *rrSlot = (RouteRecordSlot *)malloc(sizeof(RouteRecordSlot));
 	rrSlot->ipAddress = ipAddress;
 	rrSlot->randomValue = randomValue;
@@ -93,53 +93,88 @@ Flow* createFlowStruct(struct in_addr* victimIP, struct in_addr* attackerIP,
 
 }
 
-//This function is used to send flow struct over the network    TODO unsure
-int sendFlowStruct(struct in_addr* destIP, Flow* flow){
-	int sockfd;
+
+int sendFlowStruct(struct in_addr* destIP, Flow* flow){ //TODO
+	return 0;
+}
+
+//This function is used to send flow struct over the network  
+int sendFlow(char* destIP, char* port, Flow* flow){
+	// int sockfd;
 	char* flowString = writeFlowStructAsNetworkBuffer(flow);
 
-	char destIPChar[INET_ADDRSTRLEN];
-	struct addrinfo hints, *res;
+	// char destIPChar[INET_ADDRSTRLEN];
+	// struct addrinfo hints, *res;
 
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
+	// hints.ai_family = AF_UNSPEC;
+	// hints.ai_socktype = SOCK_STREAM;
 
-	//convert ip address to text
-	inet_ntop(AF_INET, &(destIP), destIPChar, INET_ADDRSTRLEN);
+	// //convert ip address to text
+	// inet_ntop(AF_INET, &(destIP), destIPChar, INET_ADDRSTRLEN);
 
-	if(getaddrinfo(destIPChar, FLOW_SENDING_PORT, &hints, &res) != 0){ //TODO: DESTIPCHAR???
-		printf("getaddrinfo() failed\n");
-		exit(1);
-	}
+	// if(getaddrinfo(destIPChar, FLOW_SENDING_PORT, &hints, &res) != 0){ //TODO: DESTIPCHAR???
+	// 	printf("getaddrinfo() failed\n");
+	// 	exit(1);
+	// }
 
-	// struct sockaddr_in destAddr;
+	// // struct sockaddr_in destAddr;
 
-	// bzero(&destAddr, sizeof(destAddr));
-	// destAddr.sin_family = AF_INET;
-	// destAddr.sin_port = htons(FLOW_SENDING_PORT);
-	// destAddr.sin_addr.s_addr = destIP; //in_addr_t
+	// // bzero(&destAddr, sizeof(destAddr));
+	// // destAddr.sin_family = AF_INET;
+	// // destAddr.sin_port = htons(FLOW_SENDING_PORT);
+	// // destAddr.sin_addr.s_addr = destIP; //in_addr_t
 
-	sockfd = socket(AF_INET, SOCK_STREAM, 0); 
-	if(sockfd < 0) {
-		printf("socket() failed\n");
-		exit(1);
-	}
+	// sockfd = socket(AF_INET, SOCK_STREAM, 0); 
+	// if(sockfd < 0) {
+	// 	printf("socket() failed\n");
+	// 	exit(1);
+	// }
 
-	if(connect(sockfd, res->ai_addr, res->ai_addrlen) < 0){
-		printf("connect() failed.\n");
-		exit(1);
-	}
+	// if(connect(sockfd, res->ai_addr, res->ai_addrlen) < 0){
+	// 	printf("connect() failed.\n");
+	// 	exit(1);
+	// }
 
-	// int returnVal = sendto(sockfd, flowString, strlen(flowString), 0, 
-	// 	(struct sockaddr*)&destAddr, sizeof(destAddr);
-				//TODO not correct - stream->ignore address in sendto()
+	// // int returnVal = sendto(sockfd, flowString, strlen(flowString), 0, 
+	// // 	(struct sockaddr*)&destAddr, sizeof(destAddr);
+	// 			//TODO not correct - stream->ignore address in sendto()
+	// // return returnVal;
+
+
+	// int returnVal = send(sockfd, flowString, strlen(flowString), 0);
 	// return returnVal;
 
+	//////////////////////////////
+	int sockfd;
+	struct addrinfo hints, *res;
 
-	int returnVal = send(sockfd, flowString, strlen(flowString), 0);
-	return returnVal;
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	//hints.ai_flags = AI_PASSIVE;   //TODO comment out this line if source ip addr is given
 
+	if(getaddrinfo(destIP, port, &hints, &res) != 0){ //TODO change null to ip address if source ip is given
+		printf("Error in getaddrinfo() when sending complaint\n");
+	}
 
+	sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	if(sockfd < 0) printf("Error in socket() when sending complaint\n");
+
+	if(bind(sockfd, res->ai_addr, res->ai_addrlen) != 0){
+		printf("Error in bind() when sending complaint\n");
+	}
+
+	if(connect(sockfd, res->ai_addr, res->ai_addrlen) != 0){
+		printf("Error in connect() when sending complaint\n");
+	}
+
+	int returnval;
+
+	if((returnval = send(sockfd, flowString, strlen(flowString), 0)) < 0){
+		printf("Error occurred when sending request\n");
+	}
+
+	return returnval;
 
 }
 
@@ -150,43 +185,53 @@ char* writeFlowStructAsNetworkBuffer(Flow* flow) {
 	int intSize = sizeof(int);
 
 	char* flowString = (char*)malloc(MAX_FLOW_SIZE);
+	// bzero(&flowString, MAX_FLOW_SIZE);
 
-	memcpy(flowString, flow->attackerIP, in_addrSize);
-	memcpy(flowString + in_addrSize, flow->victimIP, in_addrSize);
-	memcpy(flowString + 2 * in_addrSize, &(flow->nonce1), intSize);
-	memcpy(flowString + 2 * in_addrSize + intSize, &(flow->nonce2), intSize);
-	memcpy(flowString + 2 * in_addrSize + 2 * intSize, &(flow->messageType), intSize);
-
-	char* rrString = writeRouteRecordAsNetworkBuffer(flow->routeRecord);
-	memcpy(flowString + 2 * in_addrSize + 3 * intSize, rrString, MAX_RR_HEADER_SIZE); 
-
+	if(flow != NULL){
+		memcpy(flowString, flow->attackerIP, in_addrSize);
+		memcpy(flowString + in_addrSize, flow->victimIP, in_addrSize);
+		memcpy(flowString + 2 * in_addrSize, &(flow->nonce1), intSize);
+		memcpy(flowString + 2 * in_addrSize + intSize, &(flow->nonce2), intSize);
+		memcpy(flowString + 2 * in_addrSize + 2 * intSize, &(flow->messageType), intSize);
+		char* rrString = writeRouteRecordAsNetworkBuffer(flow->routeRecord);
+		memcpy(flowString + 2 * in_addrSize + 3 * intSize, rrString, MAX_RR_HEADER_SIZE); 
+	}
 	return flowString;
 
 }
 
 //This function converts the route record to a char buffer before sending it to network
 char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord){
+									
 
 	int intSize = sizeof(int);
 	int shortSize = sizeof(short);
 	int longSize = sizeof(long);
 
 	char* rrString = (char*)malloc(MAX_RR_HEADER_SIZE);
+	// bzero(&rrString, MAX_RR_HEADER_SIZE);
 
-	memcpy(rrString, &(routeRecord->index), shortSize);
-	memcpy(rrString + shortSize, &(routeRecord->size), shortSize);
+	if(routeRecord != NULL){
 
-	memcpy(rrString + 2 * shortSize, &((routeRecord->slot1)->ipAddress), intSize);
-	memcpy(rrString + 2 * shortSize + intSize, &((routeRecord->slot1)->randomValue), longSize);
+		memcpy(rrString, &(routeRecord->index), shortSize);
+		memcpy(rrString + shortSize, &(routeRecord->size), shortSize);
 
-	memcpy(rrString + 2 * shortSize + intSize + longSize, &((routeRecord->slot1)->ipAddress), intSize);
-	memcpy(rrString + 2 * shortSize + 2 * intSize + longSize, &((routeRecord->slot1)->randomValue), longSize);
+		memcpy(rrString + 2 * shortSize, (routeRecord->slot1)->ipAddress, intSize);
+		memcpy(rrString + 2 * shortSize + intSize, &((routeRecord->slot1)->randomValue), longSize);
 
-	memcpy(rrString + 2 * shortSize + 2 * intSize + 2 * longSize, &((routeRecord->slot1)->ipAddress), intSize);
-	memcpy(rrString + 2 * shortSize + 3 * intSize + 2 * longSize, &((routeRecord->slot1)->randomValue), longSize);
+		if(routeRecord->slot2 == NULL){
+			printf("slot null - error\n");
+		}
+		memcpy(rrString + 2 * shortSize + intSize + longSize, (routeRecord->slot2)->ipAddress, intSize);
+		memcpy(rrString + 2 * shortSize + 2 * intSize + longSize, &((routeRecord->slot2)->randomValue), longSize);
 
-	memcpy(rrString + 2 * shortSize + 3 * intSize + 3 * longSize, &((routeRecord->slot1)->ipAddress), intSize);
-	memcpy(rrString + 2 * shortSize + 4 * intSize + 3 * longSize, &((routeRecord->slot1)->randomValue), longSize);
+		memcpy(rrString + 2 * shortSize + 2 * intSize + 2 * longSize, (routeRecord->slot3)->ipAddress, intSize);
+		memcpy(rrString + 2 * shortSize + 3 * intSize + 2 * longSize, &((routeRecord->slot3)->randomValue), longSize);
+
+		memcpy(rrString + 2 * shortSize + 3 * intSize + 3 * longSize, (routeRecord->slot4)->ipAddress, intSize);
+		memcpy(rrString + 2 * shortSize + 4 * intSize + 3 * longSize, &((routeRecord->slot4)->randomValue), longSize);
+	}
+
 
 	return rrString;
 
@@ -202,19 +247,19 @@ RouteRecord* readRouteRecord(char* networkLayerPacketInfo){
 	memcpy(&(rr->size), networkLayerPacketInfo + shortSize, shortSize);
 
 	RouteRecordSlot* slot1 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
-	memcpy(&(slot1->ipAddress), networkLayerPacketInfo + 2 * shortSize, intSize);
+	memcpy(slot1->ipAddress, networkLayerPacketInfo + 2 * shortSize, intSize);
 	memcpy(&(slot1->randomValue), networkLayerPacketInfo + 2 * shortSize + intSize, longSize);
 
 	RouteRecordSlot* slot2 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
-	memcpy(&(slot2->ipAddress), networkLayerPacketInfo + 2 * shortSize + ROUTE_RECORD_SLOT_SIZE, intSize);
+	memcpy(slot2->ipAddress, networkLayerPacketInfo + 2 * shortSize + ROUTE_RECORD_SLOT_SIZE, intSize);
 	memcpy(&(slot2->randomValue), networkLayerPacketInfo + 2 * shortSize + ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
 
 	RouteRecordSlot* slot3 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
-	memcpy(&(slot3->ipAddress), networkLayerPacketInfo + 2 * shortSize + 2 * ROUTE_RECORD_SLOT_SIZE, intSize);
+	memcpy(slot3->ipAddress, networkLayerPacketInfo + 2 * shortSize + 2 * ROUTE_RECORD_SLOT_SIZE, intSize);
 	memcpy(&(slot3->randomValue), networkLayerPacketInfo + 2 * shortSize + 2 * ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
 
 	RouteRecordSlot* slot4 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
-	memcpy(&(slot4->ipAddress), networkLayerPacketInfo + 2 * shortSize + 3 *ROUTE_RECORD_SLOT_SIZE, intSize);
+	memcpy(slot4->ipAddress, networkLayerPacketInfo + 2 * shortSize + 3 *ROUTE_RECORD_SLOT_SIZE, intSize);
 	memcpy(&(slot4->randomValue), networkLayerPacketInfo + 2 * shortSize + 3 * ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
 
 	rr->slot1 = slot1;
@@ -246,7 +291,7 @@ void* listenToAITFMessage(void *portNum){
 	}
 
 	struct sockaddr_in addr;
-	bzero(&addr, sizeof(addr));
+	//bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = INADDR_ANY;//any address - not sure TODO

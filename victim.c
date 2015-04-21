@@ -18,6 +18,7 @@
 #include <netinet/in.h>
 
 #include "victim.h"
+#include "shared.h"
 
 
 
@@ -98,7 +99,19 @@ int main(int argc, char* argv[]){
 				printf("Attack Threshold Met for [%s] - Reporting and resetting!\n\n", srcIP);
 
 				//Complain to Victim Gateway Here
+				//Create Flow struct based on received Route Record first
+				//TODO below: temporary implementation
+				struct in_addr tmpAddr;
+				inet_pton(AF_INET, "127.0.0.1", &(tmpAddr));
+				RouteRecord* tempRR = createRouteRecord(&tmpAddr, 5);
+
+				struct in_addr destIPAddr;
+				inet_pton(AF_INET, DESTINATION_IP, &(destIPAddr));
+				Flow* flow = createFlowStruct(&destIPAddr, &tmpAddr, tempRR, 1, 2, AITF_BLOCKING_REQUEST);
+
+				sendFlow(DESTINATION_IP, TCP_PORT, flow);
 				//Wait T-temp here
+				wait(T_TEMP);
 				(*entry)->count = 0;
 			}
 		}
@@ -130,3 +143,4 @@ AttackList* updateAttackCount(AttackList* attackList, char* attackerSrcIP, Attac
 	}
 
 }
+

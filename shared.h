@@ -12,14 +12,13 @@
 #define MAX_RR_HEADER_SIZE 52
 #define MAX_FLOW_SIZE 72
 
-#define FLOW_SENDING_PORT "4404"
+#define FLOW_SENDING_PORT "4405"
 
 //chosen value for contants; see results section
 //time are in milliseconds
 #define T_LONG 10000
 #define T_TEMP 1000
 #define T_SEND 100
-#define COMPLAINING_THRESHOLD 20
 
 //Four types of AITF message
 #define AITF_BLOCKING_REQUEST 1
@@ -28,7 +27,7 @@
 #define AITF_ESCALATION_REQUEST 4
 
 typedef struct RouteRecordSlot {
-	int ipAddress;
+	struct in_addr* ipAddress;
 	long randomValue;
 } RouteRecordSlot;
 
@@ -68,13 +67,14 @@ int hasTimeElapsed(struct timeval* startTime, int milliseconds);
 
 RouteRecord* readRouteRecord(char* networkLayerPacketInfo);
 
-RouteRecord* createRouteRecord(int ipAddress, long randomValue);
-void addGatewayInfo(RouteRecord* routeRecord, int ipAddress, long randomValue);
+RouteRecord* createRouteRecord(struct in_addr* ipAddress, long randomValue);
+void addGatewayInfo(RouteRecord* routeRecord, struct in_addr* ipAddress, long randomValue);
 char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord);
 
 Flow* createFlowStruct(struct in_addr* victimIP, struct in_addr* attackerIP, 
 	RouteRecord* routeRecord, int nonce1, int nonce2, int messageType);
 
+int sendFlow(char* destIP, char* port, Flow* flow);
 int sendFlowStruct(struct in_addr* destIP, Flow* flow);
 Flow* receiveFlowStruct();
 
