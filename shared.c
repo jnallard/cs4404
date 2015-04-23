@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <errno.h>
 
 #include <arpa/inet.h>
 
@@ -102,6 +103,13 @@ int sendFlowStruct(struct in_addr* destIP, Flow* flow){ //TODO
 int sendFlow(char* destIP, char* port, Flow* flow){
 	// int sockfd;
 	char* flowString = writeFlowStructAsNetworkBuffer(flow);
+	printf("flow info - nonce 1, nonce 2, message type: %d, %d,%d\n", flow->nonce1, flow->nonce2, flow->messageType);
+	Flow *tmp = readAITFMessage(flowString);
+	printf("flow info - nonce 1, nonce 2, message type: %d, %d,%d\n", tmp->nonce1, tmp->nonce2, tmp->messageType);
+
+
+
+
 
 	// char destIPChar[INET_ADDRSTRLEN];
 	// struct addrinfo hints, *res;
@@ -160,9 +168,9 @@ int sendFlow(char* destIP, char* port, Flow* flow){
 	sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if(sockfd < 0) printf("Error in socket() when sending complaint\n");
 
-	if(bind(sockfd, res->ai_addr, res->ai_addrlen) != 0){
-		printf("Error in bind() when sending complaint\n");
-	}
+	// if(bind(sockfd, res->ai_addr, res->ai_addrlen) != 0){
+	// 	printf("Error in bind() when sending complaint, %s\n", strerror(errno));
+	// }
 
 	if(connect(sockfd, res->ai_addr, res->ai_addrlen) != 0){
 		printf("Error in connect() when sending complaint\n");
@@ -170,9 +178,24 @@ int sendFlow(char* destIP, char* port, Flow* flow){
 
 	int returnval;
 
-	if((returnval = send(sockfd, flowString, strlen(flowString), 0)) < 0){
+	if((returnval = send(sockfd, flowString, MAX_FLOW_SIZE, 0)) < 0){
 		printf("Error occurred when sending request\n");
+	} else {
+		printf("Request sent\n");
+		printf("length %d\n", returnval);
+		printf("packet %s\n", flowString);
 	}
+
+	int optval = 1;
+	if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval)){
+		printf("unable to let other processes to use the same socket: %s\n", strerror(errno));
+	}
+
+	if(close(sockfd) != 0){
+		printf("close socket failed, error: %s\n", strerror(errno));
+
+	}
+
 
 	return returnval;
 
@@ -200,6 +223,32 @@ char* writeFlowStructAsNetworkBuffer(Flow* flow) {
 
 }
 
+//This function converts char array to the flow struct
+Flow* readAITFMessage(char* flowInfo){
+
+	int intSize = sizeof(int);
+	Flow* flow = (Flow*)malloc(sizeof(Flow));
+
+	//copy two addresses
+	struct in_addr* rcvdAttackerIP = (struct in_addr*)malloc(sizeof(struct in_addr));
+	struct in_addr* rcvdVictimIP = (struct in_addr*)malloc(sizeof(struct in_addr));
+	memcpy(rcvdAttackerIP, flowInfo, intSize);
+	memcpy(rcvdVictimIP, flowInfo + intSize, intSize);
+	flow->attackerIP = rcvdAttackerIP;
+	flow->victimIP = rcvdVictimIP;
+
+
+	//copy nonce values and message type
+	memcpy(&(flow->nonce1), flowInfo + 2 * intSize, intSize);
+	memcpy(&(flow->nonce2), flowInfo + 3 * intSize, intSize);
+	memcpy(&(flow->messageType), flowInfo + 4 * intSize, intSize);
+	flow->routeRecord = readRouteRecord(flowInfo + 5 * intSize);
+
+	return flow;
+
+}
+
+
 //This function converts the route record to a char buffer before sending it to network
 char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord){
 									
@@ -216,26 +265,44 @@ char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord){
 		memcpy(rrString, &(routeRecord->index), shortSize);
 		memcpy(rrString + shortSize, &(routeRecord->size), shortSize);
 
+		//the first slot should be guaranteed to have data
 		memcpy(rrString + 2 * shortSize, (routeRecord->slot1)->ipAddress, intSize);
 		memcpy(rrString + 2 * shortSize + intSize, &((routeRecord->slot1)->randomValue), longSize);
 
-		if(routeRecord->slot2 == NULL){
-			printf("slot null - error\n");
+		if(routeRecord->slot2 != NULL){
+			memcpy(rrString + 2 * shortSize + intSize + longSize, (routeRecord->slot2)->ipAddress, intSize);
+			memcpy(rrString + 2 * shortSize + 2 * intSize + longSize, &((routeRecord->slot2)->randomValue), longSize);
+		} else {
+			printf("slot2 null \n");
+			memset(rrString + 2 * shortSize + intSize + longSize, '\0', intSize + longSize);
 		}
-		memcpy(rrString + 2 * shortSize + intSize + longSize, (routeRecord->slot2)->ipAddress, intSize);
-		memcpy(rrString + 2 * shortSize + 2 * intSize + longSize, &((routeRecord->slot2)->randomValue), longSize);
 
-		memcpy(rrString + 2 * shortSize + 2 * intSize + 2 * longSize, (routeRecord->slot3)->ipAddress, intSize);
-		memcpy(rrString + 2 * shortSize + 3 * intSize + 2 * longSize, &((routeRecord->slot3)->randomValue), longSize);
+		if(routeRecord->slot3 != NULL){
+			memcpy(rrString + 2 * shortSize + 2 * intSize + 2 * longSize, (routeRecord->slot3)->ipAddress, intSize);
+			memcpy(rrString + 2 * shortSize + 3 * intSize + 2 * longSize, &((routeRecord->slot3)->randomValue), longSize);
 
-		memcpy(rrString + 2 * shortSize + 3 * intSize + 3 * longSize, (routeRecord->slot4)->ipAddress, intSize);
-		memcpy(rrString + 2 * shortSize + 4 * intSize + 3 * longSize, &((routeRecord->slot4)->randomValue), longSize);
+		} else {
+			printf("slot3 null \n");
+			memset(rrString + 2 * shortSize + 2 * intSize + 2 * longSize, '\0', intSize + longSize);
+
+		}
+
+		if(routeRecord->slot4 != NULL){
+			memcpy(rrString + 2 * shortSize + 3 * intSize + 3 * longSize, (routeRecord->slot4)->ipAddress, intSize);
+			memcpy(rrString + 2 * shortSize + 4 * intSize + 3 * longSize, &((routeRecord->slot4)->randomValue), longSize);
+		} else {
+			printf("slot4 null \n");
+			memset(rrString + 2 * shortSize + 3 * intSize + 3 * longSize, '\0', intSize + longSize);
+
+		}
 	}
 
 
 	return rrString;
 
 }
+
+
 
 RouteRecord* readRouteRecord(char* networkLayerPacketInfo){
 	int intSize = sizeof(int);
@@ -247,19 +314,27 @@ RouteRecord* readRouteRecord(char* networkLayerPacketInfo){
 	memcpy(&(rr->size), networkLayerPacketInfo + shortSize, shortSize);
 
 	RouteRecordSlot* slot1 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
-	memcpy(slot1->ipAddress, networkLayerPacketInfo + 2 * shortSize, intSize);
+	struct in_addr* slot1IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 
+	memcpy(slot1IPAddress, networkLayerPacketInfo + 2 * shortSize, intSize);
+	slot1->ipAddress = slot1IPAddress;
 	memcpy(&(slot1->randomValue), networkLayerPacketInfo + 2 * shortSize + intSize, longSize);
 
 	RouteRecordSlot* slot2 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
-	memcpy(slot2->ipAddress, networkLayerPacketInfo + 2 * shortSize + ROUTE_RECORD_SLOT_SIZE, intSize);
+	struct in_addr* slot2IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 
+	memcpy(slot2IPAddress, networkLayerPacketInfo + 2 * shortSize + ROUTE_RECORD_SLOT_SIZE, intSize);
+	slot2->ipAddress = slot2IPAddress;
 	memcpy(&(slot2->randomValue), networkLayerPacketInfo + 2 * shortSize + ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
 
 	RouteRecordSlot* slot3 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
-	memcpy(slot3->ipAddress, networkLayerPacketInfo + 2 * shortSize + 2 * ROUTE_RECORD_SLOT_SIZE, intSize);
+	struct in_addr* slot3IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 	
+	memcpy(slot3IPAddress, networkLayerPacketInfo + 2 * shortSize + 2 * ROUTE_RECORD_SLOT_SIZE, intSize);
+	slot3->ipAddress = slot3IPAddress;
 	memcpy(&(slot3->randomValue), networkLayerPacketInfo + 2 * shortSize + 2 * ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
 
 	RouteRecordSlot* slot4 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
-	memcpy(slot4->ipAddress, networkLayerPacketInfo + 2 * shortSize + 3 *ROUTE_RECORD_SLOT_SIZE, intSize);
+	struct in_addr* slot4IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 	
+	memcpy(slot4IPAddress, networkLayerPacketInfo + 2 * shortSize + 3 *ROUTE_RECORD_SLOT_SIZE, intSize);
+	slot4->ipAddress = slot3IPAddress;
 	memcpy(&(slot4->randomValue), networkLayerPacketInfo + 2 * shortSize + 3 * ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
 
 	rr->slot1 = slot1;
@@ -322,10 +397,19 @@ void* listenToAITFMessage(void *portNum){
 
 	 	char buf[2000];
 	 	int count;
-	 	memset(buf, 0, sizeof buf);
-	 	count = recv(clientfd, buf, sizeof buf, 0);
+	 	memset(buf, 0, MAX_FLOW_SIZE + 10);
+	 	count = recv(clientfd, buf, MAX_FLOW_SIZE, 0);
 	 	buf[count] = '\0';
-	 	printf("packet received: %s\n", buf);
+	 	printf("count number %d\n", count);
+	 	printf("packet received. %s\n", buf);
+
+	 	//handle AITF message
+		Flow *receivedFlow = readAITFMessage(buf);
+		printf("flow info - nonce 1, nonce 2, message type, string length: %d, %d,%d\n", 
+			receivedFlow->nonce1, receivedFlow->nonce2, receivedFlow->messageType);
+
+	 	//updateAITFMessageList(receivedFlow)
+
 
 	 	//TODO - handle AITF
 

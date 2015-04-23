@@ -76,7 +76,7 @@ Flow* createFlowStruct(struct in_addr* victimIP, struct in_addr* attackerIP,
 
 int sendFlow(char* destIP, char* port, Flow* flow);
 int sendFlowStruct(struct in_addr* destIP, Flow* flow);
-Flow* receiveFlowStruct();
+Flow* readAITFMessage(char* flowInfo);
 
 int createNonce(int sourceIP, int destIP);
 
