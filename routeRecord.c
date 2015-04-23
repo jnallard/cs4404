@@ -27,7 +27,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 
 		char* packet_data = (char*) calloc(1, 10000);
 		char* packet_data_2 = (char*) calloc(1, 10000);
-		int count = nfq_get_payload(nfa, &packet_data);
+		int count = nfq_get_payload(nfa, (unsigned char**)&packet_data);
 		printf("count: [%d], ", count);
 
 		int protocol = (int) packet_data[9];
