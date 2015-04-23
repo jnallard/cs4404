@@ -4,7 +4,23 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <pthread.h>
-
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/types.h> 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <errno.h>
+#include <linux/if_packet.h>
+#include <netdb.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <linux/netfilter.h>
+//#include <libnetfilter_queue/libipq.h>
+#include <libnetfilter_queue/libnetfilter_queue.h>
 
 
 

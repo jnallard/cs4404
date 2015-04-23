@@ -1,16 +1,8 @@
 //Route Record
 //jnallard, yyan
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <netinet/in.h>
-#include <linux/netfilter.h>
-#include <libnetfilter_queue/libipq.h>
-#include <libnetfilter_queue/libnetfilter_queue.h>
 #include "shared.h"
 
-//sudo apt-get install libnetfilter_queue_dev
+//sudo apt-get install libnetfilter-queue-dev
 
 //Code started from examples here:
 //http://www.netfilter.org/projects/libnetfilter_queue/doxygen/group__LibrarySetup.html
@@ -31,7 +23,13 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		int count = nfq_get_payload(nfa, &packet_data);
 		printf("count: [%d], ", count);
 
-		RouteRecord* rr = createRouteRecord(2130706433, -1l);
+		int protocol = (int) packet_data[9];
+		printf("protocol: [%d]", protocol);
+
+
+		struct in_addr tmpAddr;
+		inet_pton(AF_INET, "127.0.0.1", &(tmpAddr));
+		RouteRecord* rr = createRouteRecord(&tmpAddr, -1l);
 		char* rr_buf = writeRouteRecordAsNetworkBuffer(rr);
 
 		memcpy(packet_data_2, packet_data + 20, count - 20);
