@@ -414,6 +414,29 @@ void freeRouteRecord(RouteRecord *rr){
 
 
 
+//Code learned from http://stackoverflow.com/questions/2283494/get-ip-address-of-an-interface-on-linux
+char* getIPAddress(char* interface){
+	int fd;
+	struct ifreq ifr;
+	char* hostIP;
+
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	ifr.ifr_addr.sa_family = AF_INET;
+	strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
+	ioctl(fd, SIOCGIFADDR, &ifr);
+	close(fd);
+	hostIP = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+
+	printf("Host Interface (%s) Address: [%s]\n", interface, hostIP);
+	return hostIP;
+}
+
+
+struct in_addr* getInAddr(char* IPAddress){
+	struct in_addr* tmpAddr = (struct in_addr*) calloc(1, sizeof(struct in_addr));
+	inet_pton(AF_INET, "127.0.0.1", tmpAddr);
+	return tmpAddr;
+}
 
 
 // int createNonce(int sourceIP, int destIP){

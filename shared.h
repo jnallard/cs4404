@@ -19,7 +19,6 @@
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <linux/netfilter.h>
-//#include <libnetfilter_queue/libipq.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
 
@@ -29,6 +28,7 @@
 #define MAX_FLOW_SIZE 72
 
 #define FLOW_SENDING_PORT "4405"
+#define INTERFACE "lo"
 
 //chosen value for contants; see results section
 //time are in milliseconds
@@ -112,4 +112,8 @@ void updateAITFMessageList(Flow* newAITFMessage);
 //Free memory
 void freeFlow(Flow *flow);
 void freeRouteRecord(RouteRecord *rr);
+
+//IP getting information
+char* getIPAddress(char* interface);
+struct in_addr* getInAddr(char* IPAddress);
 #endif

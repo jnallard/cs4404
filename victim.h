@@ -2,7 +2,6 @@
 #define VICTIM_H
 
 #define UDP_PORT 4404
-#define INTERFACE "lo"
 #define ATTACK_COUNT_THRESHOLD 20
 
 #define TCP_PORT "4405"
