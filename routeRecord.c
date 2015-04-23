@@ -2,11 +2,18 @@
 //jnallard, yyan
 #include "shared.h"
 
+#define ROUTE_RECORD_PROTOCOL 200
+
 //sudo apt-get install libnetfilter-queue-dev
 
 //Code started from examples here:
 //http://www.netfilter.org/projects/libnetfilter_queue/doxygen/group__LibrarySetup.html
 //http://www.netfilter.org/projects/libnetfilter_queue/doxygen/group__Queue.html
+
+
+
+struct in_addr* gatewayAddr;
+
 
 static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	struct nfq_data *nfa, void *data)
@@ -26,16 +33,26 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		int protocol = (int) packet_data[9];
 		printf("protocol: [%d]", protocol);
 
+		//Means the route record shim is not already there, so add it.
+		if(protocol != ROUTE_RECORD_PROTOCOL){
+			RouteRecord* rr = createRouteRecord(gatewayAddr, -1l);
+			char* rr_buf = writeRouteRecordAsNetworkBuffer(rr);
 
-		struct in_addr tmpAddr;
-		inet_pton(AF_INET, "127.0.0.1", &(tmpAddr));
-		RouteRecord* rr = createRouteRecord(&tmpAddr, -1l);
-		char* rr_buf = writeRouteRecordAsNetworkBuffer(rr);
+			memcpy(packet_data_2, packet_data + 20, count - 20);
+			memcpy(packet_data + 20, rr_buf, MAX_RR_HEADER_SIZE);
+			memcpy(packet_data + 20 + MAX_RR_HEADER_SIZE, packet_data_2, count - 20);
+			packet_data[9] = (char) ROUTE_RECORD_PROTOCOL;
+			printf("Modifying Packet\n\n");
+		}
+		else{
+			// CHange the route record to add new gateway information
+			RouteRecord* rr = readRouteRecord(packet_data + 20);
+			addGatewayInfo(rr, gatewayAddr, -1l);
 
-		memcpy(packet_data_2, packet_data + 20, count - 20);
-		memcpy(packet_data + 20, rr_buf, MAX_RR_HEADER_SIZE);
-		memcpy(packet_data + 20 + MAX_RR_HEADER_SIZE, packet_data_2, count - 20);
-		printf("Modifying Packet\n\n");
+			char* rr_buf = writeRouteRecordAsNetworkBuffer(rr);
+			memcpy(packet_data + 20, rr_buf, MAX_RR_HEADER_SIZE);
+		}
+
 		return nfq_set_verdict(qh, id, NF_ACCEPT, count + MAX_RR_HEADER_SIZE, (unsigned char*) packet_data);
 	}
 
@@ -44,6 +61,9 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 }
 
 int main(int argc, char* argv[]){
+	char* gatewayIP = getIPAddress(INTERFACE);
+	gatewayAddr = getInAddr(gatewayIP);
+
 	struct nfq_handle* h = nfq_open();
 	if (!h) {
 		fprintf(stderr, "error during nfq_open()\n");

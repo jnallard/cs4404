@@ -11,18 +11,7 @@ int main(int argc, char* argv[]){
 	if(argc > 1){
 		printf("Arg detected\n");
 	}
-
-	int fd;
-	struct ifreq ifr;
-	char* hostIP;
-
-	//Code learned from http://stackoverflow.com/questions/2283494/get-ip-address-of-an-interface-on-linux
-	fd = socket(AF_INET, SOCK_DGRAM, 0);
-	ifr.ifr_addr.sa_family = AF_INET;
-	strncpy(ifr.ifr_name, INTERFACE, IFNAMSIZ-1);
-	ioctl(fd, SIOCGIFADDR, &ifr);
-	close(fd);
-	hostIP = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+	char* hostIP = getIPAddress(INTERFACE);
 
 	printf("Host Interface (%s) Address: [%s]\n", INTERFACE, hostIP);
 
