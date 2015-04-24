@@ -75,6 +75,7 @@ typedef struct AITFMessageListEntry {
 
 
 
+int aitfListeningSocket;
 
 //Function for timer
 void wait(int millisecondsToWait);
@@ -100,7 +101,7 @@ char* writeFlowStructAsNetworkBuffer(Flow* flow);
 
 
 //handle AITF messages
-AITFMessageListEntry *AITFMessageListHead;
+// AITFMessageListEntry *AITFMessageListHead;
 AITFMessageListEntry *messageListPtr;
 pthread_mutex_t lock; //prevent race condition
 

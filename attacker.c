@@ -10,6 +10,8 @@
 #include <netinet/in.h> 
 #include <netinet/ip.h>
 #include <netinet/udp.h>
+#include <signal.h>
+
 #include "shared.h"
 
 
@@ -28,6 +30,8 @@
 int inDisobedientMode = FALSE;
 int spoofIPAddress = FALSE;
 
+int sockfd;
+extern int aitfListeningSocket;
 
 void reportError(char* errorMessage){
 	printf("%s\n", errorMessage);
@@ -43,7 +47,42 @@ uint16_t udpChecksum(){ //TODO
 }
 
 
+void sigterm(int signum){
+	int optval = 1;
+	if(setsockopt(aitfListeningSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval)){
+		printf("unable to let other processes to use the same socket for listening AITF messages: %s\n", strerror(errno));
+	}
+
+	if(close(aitfListeningSocket) != 0){
+		printf("close socket for listening AITF messages failed, error: %s\n", strerror(errno));
+
+	}
+
+	if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval)){
+		printf("unable to let other processes to use the same socket for sending UDP packets: %s\n", strerror(errno));
+	}
+
+	if(close(sockfd) != 0){
+		printf("close socket for sending UDP packets failed, error: %s\n", strerror(errno));
+
+	}
+
+	printf("Exiting...\n");
+	exit(1); 
+
+}
+
+
 int main(int argc, char** argv){
+	struct sigaction action;
+
+	memset(&action, 0, sizeof (struct sigaction));
+	action.sa_handler = sigterm;
+	sigaction(SIGTERM, &action, NULL);
+	sigaction(SIGINT, &action, NULL);
+
+
+
 	if(argc == 1){
 		reportError("Usage: sudo attacker true/false [spoof IP address]");
 	}
@@ -60,7 +99,7 @@ int main(int argc, char** argv){
 	}
 
 
-	int sockfd;
+	
 	char *destIPChar = "127.0.0.1";//TODO: dest ip?? - or use getaddrinfo()? not finished
 	char srcIPChar[INET_ADDRSTRLEN];
 	//struct addrinfo hints, *res, *p;
@@ -73,16 +112,11 @@ int main(int argc, char** argv){
 	sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP);
 	if(sockfd < 0) reportError("socket() failed");
 
-	//bind to correct port and interface????
-//	bind(); TODO
-
-
-	//get source information
-	// srcIPChar = (char*)malloc(INET_ADDRSTRLEN);
 	if(spoofIPAddress == TRUE){
 		strcpy(srcIPChar, argv[2]);
 	} else {
-		//code from http://stackoverflow.com/questions/20800319/how-to-get-my-ip-address-in-c-linux
+
+		//code learned from http://stackoverflow.com/questions/20800319/how-to-get-my-ip-address-in-c-linux
 		struct ifaddrs *ifaddr, *tmp;
 		if(getifaddrs(&ifaddr) == -1){
 			reportError("getifaddrs() failed");
@@ -166,7 +200,7 @@ int main(int argc, char** argv){
 	pthread_t thread;
 	int listeningPortNumber = COMPLAINT_LISTENING_PORT;
 	if(pthread_create(&thread, NULL, listenToAITFMessage, &listeningPortNumber) != 0){
-		reportError("Error creating thead\n");
+		reportError("Error creating thread\n");
 	}
 
 	Flow* receivedFlow = NULL;
@@ -192,7 +226,7 @@ int main(int argc, char** argv){
 		}
 	}
 
-	if(pthread_join(thread, NULL)){
+	if(pthread_kill(thread, SIGINT)){
 		reportError("Error joining thread\n");
 	}
 	

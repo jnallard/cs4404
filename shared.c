@@ -273,25 +273,20 @@ char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord){
 			memcpy(rrString + 2 * shortSize + intSize + longSize, (routeRecord->slot2)->ipAddress, intSize);
 			memcpy(rrString + 2 * shortSize + 2 * intSize + longSize, &((routeRecord->slot2)->randomValue), longSize);
 		} else {
-			printf("slot2 null \n");
 			memset(rrString + 2 * shortSize + intSize + longSize, '\0', intSize + longSize);
 		}
 
 		if(routeRecord->slot3 != NULL){
 			memcpy(rrString + 2 * shortSize + 2 * intSize + 2 * longSize, (routeRecord->slot3)->ipAddress, intSize);
 			memcpy(rrString + 2 * shortSize + 3 * intSize + 2 * longSize, &((routeRecord->slot3)->randomValue), longSize);
-
 		} else {
-			printf("slot3 null \n");
 			memset(rrString + 2 * shortSize + 2 * intSize + 2 * longSize, '\0', intSize + longSize);
-
 		}
 
 		if(routeRecord->slot4 != NULL){
 			memcpy(rrString + 2 * shortSize + 3 * intSize + 3 * longSize, (routeRecord->slot4)->ipAddress, intSize);
 			memcpy(rrString + 2 * shortSize + 4 * intSize + 3 * longSize, &((routeRecord->slot4)->randomValue), longSize);
 		} else {
-			printf("slot4 null \n");
 			memset(rrString + 2 * shortSize + 3 * intSize + 3 * longSize, '\0', intSize + longSize);
 
 		}
@@ -313,29 +308,42 @@ RouteRecord* readRouteRecord(char* networkLayerPacketInfo){
 	memcpy(&(rr->index), networkLayerPacketInfo, shortSize);
 	memcpy(&(rr->size), networkLayerPacketInfo + shortSize, shortSize);
 
-	RouteRecordSlot* slot1 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
+	RouteRecordSlot* slot1 = NULL;
 	struct in_addr* slot1IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 
 	memcpy(slot1IPAddress, networkLayerPacketInfo + 2 * shortSize, intSize);
-	slot1->ipAddress = slot1IPAddress;
-	memcpy(&(slot1->randomValue), networkLayerPacketInfo + 2 * shortSize + intSize, longSize);
+	if(slot1IPAddress != NULL){
+		slot1 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
+		slot1->ipAddress = slot1IPAddress;
+		memcpy(&(slot1->randomValue), networkLayerPacketInfo + 2 * shortSize + intSize, longSize);
+	}
 
-	RouteRecordSlot* slot2 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
+	RouteRecordSlot* slot2 = NULL;
 	struct in_addr* slot2IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 
 	memcpy(slot2IPAddress, networkLayerPacketInfo + 2 * shortSize + ROUTE_RECORD_SLOT_SIZE, intSize);
-	slot2->ipAddress = slot2IPAddress;
-	memcpy(&(slot2->randomValue), networkLayerPacketInfo + 2 * shortSize + ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
+	if(slot2IPAddress != NULL){
+		slot2 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
+		slot2->ipAddress = slot2IPAddress;
+		memcpy(&(slot2->randomValue), networkLayerPacketInfo + 2 * shortSize + ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
+	}
 
-	RouteRecordSlot* slot3 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
+	RouteRecordSlot* slot3 = NULL;
 	struct in_addr* slot3IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 	
 	memcpy(slot3IPAddress, networkLayerPacketInfo + 2 * shortSize + 2 * ROUTE_RECORD_SLOT_SIZE, intSize);
-	slot3->ipAddress = slot3IPAddress;
-	memcpy(&(slot3->randomValue), networkLayerPacketInfo + 2 * shortSize + 2 * ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
+	if(slot3IPAddress != NULL){
+		slot3 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
+		slot3->ipAddress = slot3IPAddress;
+		memcpy(&(slot3->randomValue), networkLayerPacketInfo + 2 * shortSize + 2 * ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
+	}
 
-	RouteRecordSlot* slot4 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
+	RouteRecordSlot* slot4 = NULL;
 	struct in_addr* slot4IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 	
 	memcpy(slot4IPAddress, networkLayerPacketInfo + 2 * shortSize + 3 *ROUTE_RECORD_SLOT_SIZE, intSize);
-	slot4->ipAddress = slot3IPAddress;
-	memcpy(&(slot4->randomValue), networkLayerPacketInfo + 2 * shortSize + 3 * ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
+	if(slot4IPAddress != NULL){
+		slot4 = (RouteRecordSlot*)malloc(sizeof(RouteRecordSlot));
+		slot4->ipAddress = slot3IPAddress;
+		memcpy(&(slot4->randomValue), networkLayerPacketInfo + 2 * shortSize + 3 * ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
+
+	}
 
 	rr->slot1 = slot1;
 	rr->slot2 = slot2;
@@ -347,8 +355,7 @@ RouteRecord* readRouteRecord(char* networkLayerPacketInfo){
 
 //initialize the AITF message list to point to null and the lock
 void initializeAITFMessageList(){
-	AITFMessageListHead = NULL;
-	messageListPtr = AITFMessageListHead;
+	messageListPtr = NULL;
 	lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 }
 
@@ -356,12 +363,11 @@ void initializeAITFMessageList(){
 //Function ran by newly created thread to listen to incoming complaints
 void* listenToAITFMessage(void *portNum){
 	initializeAITFMessageList();
-	int sockfd;
 	int port = *(int*)portNum;
 
 
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if(sockfd < 0){
+	aitfListeningSocket = socket(AF_INET, SOCK_STREAM, 0);
+	if(aitfListeningSocket < 0){
 		printf("Error in socket() when listening to AITF message.\n");
 	}
 
@@ -372,11 +378,11 @@ void* listenToAITFMessage(void *portNum){
 	addr.sin_addr.s_addr = INADDR_ANY;//any address - not sure TODO
 
 
-	if(bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0){
+	if(bind(aitfListeningSocket, (struct sockaddr*)&addr, sizeof(addr)) < 0){
 		printf("Error in bind() when listening to AITF message. \n");
 	}
 
-	if(listen(sockfd, 20) == -1){
+	if(listen(aitfListeningSocket, 20) == -1){
 		printf("Error in listen() when listening to AITF message. \n");
 	}
 
@@ -388,11 +394,9 @@ void* listenToAITFMessage(void *portNum){
 		int clientfd;
 		struct sockaddr_storage client_addr;
 		int addrlen = sizeof(client_addr);
-		clientfd = accept(sockfd, (struct sockaddr*)&client_addr, (socklen_t * __restrict__)&addrlen);
+		clientfd = accept(aitfListeningSocket, (struct sockaddr*)&client_addr, (socklen_t * __restrict__)&addrlen);
 	 	if(clientfd == -1) {
 	 		printf("Error in accept() when listening to AITF message. \n");
-	 	} else {
-	 		printf("accept() called\n");
 	 	}
 
 	 	char buf[2000];
@@ -408,7 +412,7 @@ void* listenToAITFMessage(void *portNum){
 		printf("flow info - nonce 1, nonce 2, message type, string length: %d, %d,%d\n", 
 			receivedFlow->nonce1, receivedFlow->nonce2, receivedFlow->messageType);
 
-	 	//updateAITFMessageList(receivedFlow)
+	 	updateAITFMessageList(receivedFlow);
 
 
 	 	//TODO - handle AITF
@@ -423,10 +427,9 @@ void* listenToAITFMessage(void *portNum){
 	return NULL;
 }
 
-//return the next element that the message list pointer currently
+//return the element that the message list pointer currently
 //points to; return null if there is no new messages or the list
 //is empty. 
-//Also free memory of the messages that has already been handled. 
 Flow* receiveAITFMessage(){
 	//lock the AITF message list
 	pthread_mutex_lock(&(lock));
@@ -434,17 +437,9 @@ Flow* receiveAITFMessage(){
 
 
 	Flow* returnedMessage = NULL;
-	if(messageListPtr != NULL && messageListPtr->next != NULL){
-		messageListPtr = messageListPtr->next;
+	if(messageListPtr != NULL){
 		returnedMessage = messageListPtr->flow;
-
-		//and free the memory taken by messages that have already
-		//been handled
-		while(AITFMessageListHead != messageListPtr){
-			Flow* tmp = AITFMessageListHead->flow;
-			AITFMessageListHead = AITFMessageListHead->next;
-			freeFlow(tmp);
-		}
+		messageListPtr = messageListPtr->next;
 	}
 
 	pthread_mutex_unlock(&(lock));
@@ -464,11 +459,12 @@ void updateAITFMessageList(Flow* newAITFMessage){
 	pthread_mutex_lock(&(lock));
 	printf("Start updating AITF message\n");
 
+	if(messageListPtr == NULL){
+		messageListPtr = newEntry;
 
-	if(AITFMessageListHead == NULL){
-		AITFMessageListHead = newEntry;
 	} else {
 		AITFMessageListEntry *endPointer = messageListPtr;
+
 		while(endPointer->next != NULL){
 			endPointer = endPointer->next;
 		}
