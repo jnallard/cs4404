@@ -13,6 +13,7 @@
 
 
 struct in_addr* gatewayAddr;
+long randomValue = 0;
 
 
 static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
@@ -35,7 +36,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 
 		//Means the route record shim is not already there, so add it.
 		if(protocol != ROUTE_RECORD_PROTOCOL){
-			RouteRecord* rr = createRouteRecord(gatewayAddr, -1l);
+			RouteRecord* rr = createRouteRecord(gatewayAddr, randomValue);
 			char* rr_buf = writeRouteRecordAsNetworkBuffer(rr);
 
 			memcpy(packet_data_2, packet_data + 20, count - 20);
@@ -61,6 +62,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 }
 
 int main(int argc, char* argv[]){
+	randomValue = createLongRandomValue();
 	char* gatewayIP = getIPAddress(INTERFACE);
 	gatewayAddr = getInAddr(gatewayIP);
 

@@ -14,13 +14,6 @@
 
 #include "shared.h"
 
-
-#define TRUE 0
-#define FALSE 1
-#define ATTACKER_PORT 4404
-#define VICTIM_PORT 4404
-#define COMPLAINT_LISTENING_PORT 4405
-
 #define IPV4_HEADER_LENGTH 20
 #define UDP_HEADER_LENGTH 8
 
@@ -100,7 +93,7 @@ int main(int argc, char** argv){
 
 
 	
-	char *destIPChar = "127.0.0.1";//TODO: dest ip?? - or use getaddrinfo()? not finished
+	char *destIPChar = VICTIM_IP;//TODO: dest ip?? - or use getaddrinfo()? not finished
 	char srcIPChar[INET_ADDRSTRLEN];
 	//struct addrinfo hints, *res, *p;
 	struct sockaddr_in victimAddress;
@@ -138,7 +131,7 @@ int main(int argc, char** argv){
 	//get destination information -- TODO
 	bzero(&victimAddress, sizeof(victimAddress));
 	victimAddress.sin_family = AF_INET;
-	victimAddress.sin_port = htons(VICTIM_PORT);
+	victimAddress.sin_port = htons(UDP_PORT);
 	if(inet_pton(AF_INET, destIPChar, &(victimAddress.sin_addr)) != 1){
 		reportError("inet_pton failed");
 	}
@@ -174,8 +167,8 @@ int main(int argc, char** argv){
 
 	//UDP header
 	struct udphdr udphdr;
-	udphdr.source = htons(ATTACKER_PORT);
-	udphdr.dest = htons(VICTIM_PORT);
+	udphdr.source = htons(UDP_PORT);
+	udphdr.dest = htons(UDP_PORT);
 	udphdr.len = htons(UDP_HEADER_LENGTH);
 	udphdr.check = udpChecksum();//checksum for udp TODO
 
@@ -198,7 +191,7 @@ int main(int argc, char** argv){
 
 	//TODO replace the above sendto() with the logic below
 	pthread_t thread;
-	int listeningPortNumber = COMPLAINT_LISTENING_PORT;
+	int listeningPortNumber = TCP_PORT;
 	if(pthread_create(&thread, NULL, listenToAITFMessage, &listeningPortNumber) != 0){
 		reportError("Error creating thread\n");
 	}

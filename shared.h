@@ -20,8 +20,10 @@
 #include <net/if.h>
 #include <linux/netfilter.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
+#include <time.h>
 
-
+#define TRUE 0
+#define FALSE 1
 
 #define ROUTE_RECORD_SLOT_SIZE 12
 #define MAX_RR_HEADER_SIZE 52
@@ -29,6 +31,11 @@
 
 #define FLOW_SENDING_PORT "4405"
 #define INTERFACE "lo"
+
+#define VICTIM_IP "127.0.0.1"
+#define VICTIM_GATEWAY_IP "127.0.0.1"
+#define UDP_PORT 4404
+#define TCP_PORT 4405
 
 //chosen value for contants; see results section
 //time are in milliseconds
@@ -91,11 +98,13 @@ char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord);
 Flow* createFlowStruct(struct in_addr* victimIP, struct in_addr* attackerIP, 
 	RouteRecord* routeRecord, int nonce1, int nonce2, int messageType);
 
-int sendFlow(char* destIP, char* port, Flow* flow);
+int sendFlow(char* destIP, int port, Flow* flow);
 int sendFlowStruct(struct in_addr* destIP, Flow* flow);
 Flow* readAITFMessage(char* flowInfo);
 
-int createNonce(int sourceIP, int destIP);
+int createNonce(struct in_addr* sourceIP, struct in_addr* destIP);
+long createLongRandomValue();
+int createRandomInt();
 
 char* writeFlowStructAsNetworkBuffer(Flow* flow);
 

@@ -1,15 +1,4 @@
 #include "shared.h"
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-       
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <errno.h>
-
-#include <arpa/inet.h>
 
 //This function lets the program sleep for the given milliseconds time
 void wait(int millisecondsToWait){
@@ -69,7 +58,6 @@ void addGatewayInfo(RouteRecord* routeRecord, struct in_addr* ipAddress, long ra
 	}
 
 	if(index < 2 || index > 4 || slotPointer == NULL || *slotPointer != NULL){
-		//throw exception - not sure TODO
 		printf("Error with routeRecord\n");
 		exit(1);
 	}
@@ -94,83 +82,30 @@ Flow* createFlowStruct(struct in_addr* victimIP, struct in_addr* attackerIP,
 
 }
 
-
-int sendFlowStruct(struct in_addr* destIP, Flow* flow){ //TODO
-	return 0;
-}
-
 //This function is used to send flow struct over the network  
-int sendFlow(char* destIP, char* port, Flow* flow){
+int sendFlow(char* destIP, int port, Flow* flow){
 	// int sockfd;
 	char* flowString = writeFlowStructAsNetworkBuffer(flow);
 	printf("flow info - nonce 1, nonce 2, message type: %d, %d,%d\n", flow->nonce1, flow->nonce2, flow->messageType);
 	Flow *tmp = readAITFMessage(flowString);
 	printf("flow info - nonce 1, nonce 2, message type: %d, %d,%d\n", tmp->nonce1, tmp->nonce2, tmp->messageType);
 
-
-
-
-
-	// char destIPChar[INET_ADDRSTRLEN];
-	// struct addrinfo hints, *res;
-
-	// hints.ai_family = AF_UNSPEC;
-	// hints.ai_socktype = SOCK_STREAM;
-
-	// //convert ip address to text
-	// inet_ntop(AF_INET, &(destIP), destIPChar, INET_ADDRSTRLEN);
-
-	// if(getaddrinfo(destIPChar, FLOW_SENDING_PORT, &hints, &res) != 0){ //TODO: DESTIPCHAR???
-	// 	printf("getaddrinfo() failed\n");
-	// 	exit(1);
-	// }
-
-	// // struct sockaddr_in destAddr;
-
-	// // bzero(&destAddr, sizeof(destAddr));
-	// // destAddr.sin_family = AF_INET;
-	// // destAddr.sin_port = htons(FLOW_SENDING_PORT);
-	// // destAddr.sin_addr.s_addr = destIP; //in_addr_t
-
-	// sockfd = socket(AF_INET, SOCK_STREAM, 0); 
-	// if(sockfd < 0) {
-	// 	printf("socket() failed\n");
-	// 	exit(1);
-	// }
-
-	// if(connect(sockfd, res->ai_addr, res->ai_addrlen) < 0){
-	// 	printf("connect() failed.\n");
-	// 	exit(1);
-	// }
-
-	// // int returnVal = sendto(sockfd, flowString, strlen(flowString), 0, 
-	// // 	(struct sockaddr*)&destAddr, sizeof(destAddr);
-	// 			//TODO not correct - stream->ignore address in sendto()
-	// // return returnVal;
-
-
-	// int returnVal = send(sockfd, flowString, strlen(flowString), 0);
-	// return returnVal;
-
-	//////////////////////////////
 	int sockfd;
 	struct addrinfo hints, *res;
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
-	//hints.ai_flags = AI_PASSIVE;   //TODO comment out this line if source ip addr is given
 
-	if(getaddrinfo(destIP, port, &hints, &res) != 0){ //TODO change null to ip address if source ip is given
+	char portStr[15];
+	sprintf(portStr, "%d", port);
+
+	if(getaddrinfo(destIP, portStr, &hints, &res) != 0){ 
 		printf("Error in getaddrinfo() when sending complaint\n");
 	}
 
 	sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if(sockfd < 0) printf("Error in socket() when sending complaint\n");
-
-	// if(bind(sockfd, res->ai_addr, res->ai_addrlen) != 0){
-	// 	printf("Error in bind() when sending complaint, %s\n", strerror(errno));
-	// }
 
 	if(connect(sockfd, res->ai_addr, res->ai_addrlen) != 0){
 		printf("Error in connect() when sending complaint\n");
@@ -207,8 +142,7 @@ char* writeFlowStructAsNetworkBuffer(Flow* flow) {
 	int in_addrSize = sizeof(struct in_addr);
 	int intSize = sizeof(int);
 
-	char* flowString = (char*)malloc(MAX_FLOW_SIZE);
-	// bzero(&flowString, MAX_FLOW_SIZE);
+	char* flowString = (char*)calloc(1, MAX_FLOW_SIZE);
 
 	if(flow != NULL){
 		memcpy(flowString, flow->attackerIP, in_addrSize);
@@ -257,8 +191,7 @@ char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord){
 	int shortSize = sizeof(short);
 	int longSize = sizeof(long);
 
-	char* rrString = (char*)malloc(MAX_RR_HEADER_SIZE);
-	// bzero(&rrString, MAX_RR_HEADER_SIZE);
+	char* rrString = (char*)calloc(1, MAX_RR_HEADER_SIZE);
 
 	if(routeRecord != NULL){
 
@@ -359,12 +292,10 @@ void initializeAITFMessageList(){
 	lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 }
 
-//TODO
 //Function ran by newly created thread to listen to incoming complaints
 void* listenToAITFMessage(void *portNum){
 	initializeAITFMessageList();
 	int port = *(int*)portNum;
-
 
 	aitfListeningSocket = socket(AF_INET, SOCK_STREAM, 0);
 	if(aitfListeningSocket < 0){
@@ -375,7 +306,7 @@ void* listenToAITFMessage(void *portNum){
 	//bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
-	addr.sin_addr.s_addr = INADDR_ANY;//any address - not sure TODO
+	addr.sin_addr.s_addr = INADDR_ANY;
 
 
 	if(bind(aitfListeningSocket, (struct sockaddr*)&addr, sizeof(addr)) < 0){
@@ -385,9 +316,7 @@ void* listenToAITFMessage(void *portNum){
 	if(listen(aitfListeningSocket, 20) == -1){
 		printf("Error in listen() when listening to AITF message. \n");
 	}
-
-	//fcntl(sockfd, F_SETFL, O_NONBLOCK); //make the socket non-block
-
+	
 	while(1){
 		printf("enter loop for receiving packet\n");
 
@@ -413,9 +342,6 @@ void* listenToAITFMessage(void *portNum){
 			receivedFlow->nonce1, receivedFlow->nonce2, receivedFlow->messageType);
 
 	 	updateAITFMessageList(receivedFlow);
-
-
-	 	//TODO - handle AITF
 
 	}
 
@@ -512,18 +438,39 @@ char* getIPAddress(char* interface){
 }
 
 
-struct in_addr* getInAddr(char* IPAddress){
+struct in_addr* getInAddr(char* ipAddress){
 	struct in_addr* tmpAddr = (struct in_addr*) calloc(1, sizeof(struct in_addr));
-	inet_pton(AF_INET, "127.0.0.1", tmpAddr);
+	inet_pton(AF_INET, ipAddress, tmpAddr);
 	return tmpAddr;
 }
 
 
-// int createNonce(int sourceIP, int destIP){
-// 	//To create nonce values, we will use a shared function that 
-// 	//will hash the source and destination IP into a new value; 
-// 	//we will XOR them together and XOR the result with a random 32-bit number. 
+//To create nonce values, we will use a shared function that 
+//will hash the source and destination IP into a new value; 
+//we will XOR them together and XOR the result with a random 32-bit number. 
+int createNonce(struct in_addr* sourceIP, struct in_addr* destIP){
+	int value = (sourceIP->s_addr);
+	value = value ^ (destIP->s_addr);
+	value = value ^ createRandomInt();
+	return value;
+}
 
+long createLongRandomValue(){
+	long value = 0;
+	long firstRand = ((long) createRandomInt()) << (sizeof(long) * 8 / 2);
+	long secondRand = (long) createRandomInt();
+	value = (long) firstRand;
+	value = value | secondRand;
+	printf("\nRandomValue: [%lu], [%lu], [%lu]\n\n", value, firstRand, secondRand);
+	return value;
+}
 
-// }
+int isFirstNumber = TRUE;
+int createRandomInt(){
+	if(isFirstNumber == TRUE){
+		isFirstNumber = FALSE;
+		srand(time(NULL));
+	}
+	return rand();
+}
 

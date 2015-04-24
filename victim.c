@@ -73,15 +73,14 @@ int main(int argc, char* argv[]){
 				//Complain to Victim Gateway Here
 				//Create Flow struct based on received Route Record first
 				//TODO below: temporary implementation
-				struct in_addr tmpAddr;
-				inet_pton(AF_INET, "127.0.0.1", &(tmpAddr));
-				RouteRecord* tempRR = createRouteRecord(&tmpAddr, 5);
+				RouteRecord* tempRR = readRouteRecord(buffer + 20);
 
-				struct in_addr destIPAddr;
-				inet_pton(AF_INET, DESTINATION_IP, &(destIPAddr));
-				Flow* flow = createFlowStruct(&destIPAddr, &tmpAddr, tempRR, 1, 2, AITF_BLOCKING_REQUEST);
+				struct in_addr* victimAddr = getInAddr(destIP);
+				struct in_addr* attackerAddr = getInAddr(srcIP);
 
-				sendFlow(DESTINATION_IP, TCP_PORT, flow);
+				Flow* flow = createFlowStruct(victimAddr, attackerAddr, tempRR, createNonce(victimAddr, attackerAddr), 0, AITF_BLOCKING_REQUEST);
+
+				sendFlow(VICTIM_GATEWAY_IP, TCP_PORT, flow);
 				//Wait T-temp here
 				wait(T_TEMP);
 				(*entry)->count = 0;
@@ -115,4 +114,3 @@ AttackList* updateAttackCount(AttackList* attackList, char* attackerSrcIP, Attac
 	}
 
 }
-
