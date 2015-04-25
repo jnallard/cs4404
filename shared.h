@@ -127,4 +127,27 @@ void freeRouteRecord(RouteRecord *rr);
 //IP getting information
 char* getIPAddress(char* interface);
 struct in_addr* getInAddr(char* IPAddress);
+
+
+//For shadow filtering table
+typedef struct ShadowFilteringTableEntry {
+	Flow *flow;
+	struct timeval* startTime;
+	struct ShadowFilteringTableEntry *next;
+} ShadowFilteringTableEntry;
+
+
+ShadowFilteringTableEntry *headTableEntry;
+pthread_mutex_t filteringTableLock; //prevent race condition
+
+void initializeShadowFilteringTableEntry();
+void addEntryToShadowFilteringTable(Flow* flow);
+int isInShadowFilteringTable(Flow* flow);
+void updateShadowFilteringTable();
+int compareIPAddresses(struct in_addr* ip1, struct in_addr* ip2);
+
+
 #endif
+
+
+

@@ -33,8 +33,6 @@ routeRecord: routeRecord.o shared.o
 routeRecord.o: routeRecord.c shared.h
 	gcc -Wall -c routeRecord.c
 
-filteringTable.o: filteringTable.c shared.h
-	gcc -Wall -c filteringTable.c
 clean:
 	rm -f *.o
 	rm -f attacker
