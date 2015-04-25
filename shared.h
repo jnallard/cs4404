@@ -21,6 +21,11 @@
 #include <linux/netfilter.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
 #include <time.h>
+#include <ifaddrs.h>
+#include <netinet/in.h> 
+#include <netinet/ip.h>
+#include <netinet/udp.h>
+#include <signal.h>
 
 #define TRUE 0
 #define FALSE 1
@@ -116,6 +121,9 @@ char* writeFlowStructAsNetworkBuffer(Flow* flow);
 AITFMessageListEntry *messageListPtr;
 pthread_mutex_t lock; //prevent race condition
 
+void reportError(char* errorMessage);
+pthread_t createAITFListeningThread(int port);
+void killAITFListeningThread(pthread_t thread);
 void* listenToAITFMessage(void *portNum);
 Flow* receiveAITFMessage();
 void initializeAITFMessageList();

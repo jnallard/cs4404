@@ -292,6 +292,29 @@ void initializeAITFMessageList(){
 	lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 }
 
+
+
+void reportError(char* errorMessage){
+	printf("%s\n", errorMessage);
+	exit(1);
+}
+
+pthread_t createAITFListeningThread(int port){
+	pthread_t thread;
+	int listeningPortNumber = port;
+	if(pthread_create(&thread, NULL, listenToAITFMessage, &listeningPortNumber) != 0){
+		reportError("Error creating thread\n");
+	}
+	return thread;
+}
+
+
+void killAITFListeningThread(pthread_t thread){
+	if(pthread_kill(thread, SIGINT)){
+		reportError("Error joining thread\n");
+	}
+}
+
 //Function ran by newly created thread to listen to incoming complaints
 void* listenToAITFMessage(void *portNum){
 	initializeAITFMessageList();

@@ -26,11 +26,6 @@ int spoofIPAddress = FALSE;
 int sockfd;
 extern int aitfListeningSocket;
 
-void reportError(char* errorMessage){
-	printf("%s\n", errorMessage);
-	exit(1);
-}
-
 uint16_t ipChecksum(){ //TODO
 	return 0;
 }
@@ -190,11 +185,7 @@ int main(int argc, char** argv){
 
 
 	//TODO replace the above sendto() with the logic below
-	pthread_t thread;
-	int listeningPortNumber = TCP_RECEIVING_PORT;
-	if(pthread_create(&thread, NULL, listenToAITFMessage, &listeningPortNumber) != 0){
-		reportError("Error creating thread\n");
-	}
+	pthread_t listeningThread = createAITFListeningThread(TCP_RECEIVING_PORT);
 
 	Flow* receivedFlow = NULL;
 
@@ -219,9 +210,7 @@ int main(int argc, char** argv){
 		}
 	}
 
-	if(pthread_kill(thread, SIGINT)){
-		reportError("Error joining thread\n");
-	}
+	killAITFListeningThread(listeningThread);
 	
 //-------------------
 

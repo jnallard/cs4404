@@ -16,19 +16,19 @@ attackerGateway.o: attackerGateway.c shared.h
 	gcc -Wall -c attackerGateway.c
 
 victim: victim.o shared.o
-	gcc -Wall victim.o shared.o -o victim
+	gcc -Wall -pthread victim.o shared.o -o victim
 
 victim.o: victim.c shared.h
 	gcc -Wall -c victim.c
 
 victimGateway: victimGateway.o shared.o
-	gcc -Wall victimGateway.o shared.o -o victimGateway
+	gcc -Wall -pthread victimGateway.o shared.o -o victimGateway
 
 victimGateway.o: victimGateway.c shared.h
 	gcc -Wall -c victimGateway.c
 
 routeRecord: routeRecord.o shared.o
-	gcc -Wall routeRecord.o shared.o -lnfnetlink -lnetfilter_queue -o routeRecord
+	gcc -Wall -pthread routeRecord.o shared.o -lnfnetlink -lnetfilter_queue -o routeRecord
 
 routeRecord.o: routeRecord.c shared.h
 	gcc -Wall -c routeRecord.c
