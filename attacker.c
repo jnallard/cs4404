@@ -208,7 +208,7 @@ int main(int argc, char** argv){
 				printf("Packet sent.\n");
 			}
 			//wait for T-send before resend the packet
-			wait(T_SEND);
+			waitMilliseconds(T_SEND);
 
 		} else if(receivedFlow->messageType == AITF_BLOCKING_REQUEST) {
 			printf("Blocking request received, attacker exits.\n");

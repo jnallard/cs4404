@@ -1,7 +1,7 @@
 #include "shared.h"
 
 //This function lets the program sleep for the given milliseconds time
-void wait(int millisecondsToWait){
+void waitMilliseconds(int millisecondsToWait){
 	usleep(millisecondsToWait * 1000);
 
 }
@@ -14,7 +14,7 @@ int hasTimeElapsed(struct timeval* startTime, int milliseconds){
 	double currentTimeInMill = currentTime.tv_sec * 1000 + (currentTime.tv_usec) / 1000;
 	double expectedTime = startTime->tv_sec * 1000 + (startTime->tv_usec) / 1000 + milliseconds;
 	//return 1 if the time has passed, otherwise return 0
-	int returnVal = (currentTimeInMill - expectedTime > 0) ? 1 : 0;
+	int returnVal = (currentTimeInMill - expectedTime > 0) ? TRUE : FALSE;
 	return returnVal;
 }
 

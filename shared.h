@@ -42,6 +42,7 @@
 #define T_LONG 10000
 #define T_TEMP 1000
 #define T_SEND 100
+#define T_TABLE_CHECK 1000
 
 //Four types of AITF message
 #define AITF_BLOCKING_REQUEST 1
@@ -85,7 +86,7 @@ typedef struct AITFMessageListEntry {
 int aitfListeningSocket;
 
 //Function for timer
-void wait(int millisecondsToWait);
+void waitMilliseconds(int millisecondsToWait);
 int hasTimeElapsed(struct timeval* startTime, int milliseconds);
 
 

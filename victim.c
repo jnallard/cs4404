@@ -82,7 +82,7 @@ int main(int argc, char* argv[]){
 
 				sendFlow(VICTIM_GATEWAY_IP, TCP_PORT, flow);
 				//Wait T-temp here
-				wait(T_TEMP);
+				waitMilliseconds(T_TEMP);
 				(*entry)->count = 0;
 			}
 		}
