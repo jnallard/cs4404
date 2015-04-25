@@ -113,3 +113,7 @@ void* routeRecordMain(void* arg){
 
 	return 0;
 }
+
+int returnRandomValue(){
+	return randomValue;
+}
