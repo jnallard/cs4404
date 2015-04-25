@@ -80,7 +80,7 @@ int main(int argc, char* argv[]){
 
 				Flow* flow = createFlowStruct(victimAddr, attackerAddr, tempRR, createNonce(victimAddr, attackerAddr), 0, AITF_BLOCKING_REQUEST);
 
-				sendFlow(VICTIM_GATEWAY_IP, TCP_PORT, flow);
+				sendFlow(VICTIM_GATEWAY_IP, TCP_SENDING_PORT, flow);
 				//Wait T-temp here
 				waitMilliseconds(T_TEMP);
 				(*entry)->count = 0;

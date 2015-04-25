@@ -191,7 +191,7 @@ int main(int argc, char** argv){
 
 	//TODO replace the above sendto() with the logic below
 	pthread_t thread;
-	int listeningPortNumber = TCP_PORT;
+	int listeningPortNumber = TCP_RECEIVING_PORT;
 	if(pthread_create(&thread, NULL, listenToAITFMessage, &listeningPortNumber) != 0){
 		reportError("Error creating thread\n");
 	}

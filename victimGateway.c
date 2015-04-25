@@ -8,7 +8,7 @@ int main(int argc, char* argv[]){
 	while(running == TRUE){
 		if(hasTimeElapsed(&startTime, T_TABLE_CHECK) == TRUE){
 			gettimeofday(&startTime, NULL);
-			//check table here
+			updateShadowFilteringTable();
 		}
 
 		waitMilliseconds(100);
