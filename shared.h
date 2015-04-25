@@ -155,6 +155,9 @@ int isInShadowFilteringTable(Flow* flow);
 void updateShadowFilteringTable();
 int compareIPAddresses(struct in_addr* ip1, struct in_addr* ip2);
 
+pthread_t startRouteRecordThread();
+void* routeRecordMain(void* arg);
+
 
 #endif
 

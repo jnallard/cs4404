@@ -61,7 +61,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
 }
 
-int main(int argc, char* argv[]){
+void* routeRecordMain(void* arg){
 	randomValue = createLongRandomValue();
 	char* gatewayIP = getIPAddress(INTERFACE);
 	gatewayAddr = getInAddr(gatewayIP);

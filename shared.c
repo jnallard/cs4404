@@ -587,3 +587,14 @@ int compareIPAddresses(struct in_addr* ip1, struct in_addr* ip2){
 	inet_ntop(AF_INET, ip2, ipStr2, INET_ADDRSTRLEN);
 	return strcmp(ipStr1, ipStr2);
 }
+
+
+pthread_t startRouteRecordThread(){
+	pthread_t thread;
+	int arg = 0;
+	if(pthread_create(&thread, NULL, routeRecordMain, &arg) != 0){
+		reportError("Error creating route record thread\n");
+	}
+	return thread;
+}
+

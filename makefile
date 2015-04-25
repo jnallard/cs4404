@@ -1,34 +1,34 @@
-all: clean shared.o attacker attackerGateway victim victimGateway routeRecord
+all: clean shared.o attacker attackerGateway victim victimGateway
+
+LINK_COMMAND=-Wall -pthread -lnfnetlink -lnetfilter_queue -o
+LINK_FILES=shared.o routeRecord.o
 
 shared.o: shared.c shared.h
 	gcc -Wall -pthread -c shared.c
 
-attacker: attacker.o shared.o
-	gcc -Wall -pthread attacker.o shared.o -o attacker
+attacker: attacker.o $(LINK_FILES)
+	gcc attacker.o $(LINK_FILES) $(LINK_COMMAND) attacker
 
 attacker.o: attacker.c shared.h
 	gcc -Wall -c attacker.c
 
-attackerGateway: attackerGateway.o shared.o
-	gcc -Wall -pthread attackerGateway.o shared.o -o attackerGateway
+attackerGateway: attackerGateway.o $(LINK_FILES)
+	gcc attackerGateway.o $(LINK_FILES) $(LINK_COMMAND) attackerGateway
 
 attackerGateway.o: attackerGateway.c shared.h
 	gcc -Wall -c attackerGateway.c
 
-victim: victim.o shared.o
-	gcc -Wall -pthread victim.o shared.o -o victim
+victim: victim.o $(LINK_FILES)
+	gcc victim.o $(LINK_FILES) $(LINK_COMMAND) victim
 
 victim.o: victim.c shared.h
 	gcc -Wall -c victim.c
 
-victimGateway: victimGateway.o shared.o
-	gcc -Wall -pthread victimGateway.o shared.o -o victimGateway
+victimGateway: victimGateway.o $(LINK_FILES)
+	gcc victimGateway.o $(LINK_FILES) $(LINK_COMMAND) victimGateway
 
 victimGateway.o: victimGateway.c shared.h
 	gcc -Wall -c victimGateway.c
-
-routeRecord: routeRecord.o shared.o
-	gcc -Wall -pthread routeRecord.o shared.o -lnfnetlink -lnetfilter_queue -o routeRecord
 
 routeRecord.o: routeRecord.c shared.h
 	gcc -Wall -c routeRecord.c
