@@ -364,14 +364,9 @@ void* listenToAITFMessage(void *portNum){
 		printf("flow info - nonce 1, nonce 2, message type, string length: %d, %d,%d\n", 
 			receivedFlow->nonce1, receivedFlow->nonce2, receivedFlow->messageType);
 
-	 	updateAITFMessageList(receivedFlow);
+	 	updateAITFMessageList(receivedFlow, clientfd);
 
 	}
-
-
-
-
-
 
 	return NULL;
 }
@@ -379,15 +374,14 @@ void* listenToAITFMessage(void *portNum){
 //return the element that the message list pointer currently
 //points to; return null if there is no new messages or the list
 //is empty. 
-Flow* receiveAITFMessage(){
+AITFMessageListEntry* receiveAITFMessage(int* clientfd){
 	//lock the AITF message list
 	pthread_mutex_lock(&(lock));
 	// printf("Start receiving AITF message\n");
 
 
-	Flow* returnedMessage = NULL;
+	AITFMessageListEntry* returnedMessage = NULL;
 	if(messageListPtr != NULL){
-		returnedMessage = messageListPtr->flow;
 		messageListPtr = messageListPtr->next;
 	}
 
@@ -400,9 +394,10 @@ Flow* receiveAITFMessage(){
 }
 
 //update AITF message list to add a new entry to its tail
-void updateAITFMessageList(Flow* newAITFMessage){
+void updateAITFMessageList(Flow* newAITFMessage, int clientfd){
 	AITFMessageListEntry *newEntry = (AITFMessageListEntry *)malloc(sizeof(AITFMessageListEntry));
 	newEntry->flow = newAITFMessage;
+	newEntry->clientfd = clientfd;
 	newEntry->next = NULL;
 
 	pthread_mutex_lock(&(lock));
@@ -589,6 +584,8 @@ int compareIPAddresses(struct in_addr* ip1, struct in_addr* ip2){
 }
 
 
+
+
 pthread_t startRouteRecordThread(){
 	pthread_t thread;
 	int arg = 0;
@@ -598,3 +595,45 @@ pthread_t startRouteRecordThread(){
 	return thread;
 }
 
+
+int checkForCorrectRandomValue(char* ipAddress, long randomValue, Flow* receivedFlow){
+
+	int correctRandomValue = FALSE;
+
+	RouteRecord *receivedRR = receivedFlow->routeRecord;
+	char ipStr[INET_ADDRSTRLEN];
+
+
+	//get the slot that contains this gateway's ip address
+	RouteRecordSlot *slot = NULL;
+	if(receivedRR->slot1 != NULL){
+		inet_ntop(AF_INET, (receivedRR->slot1)->ipAddress, ipStr, INET_ADDRSTRLEN);
+		if(strcmp(ipAddress, ipStr) == 0){
+			slot = receivedRR->slot1;
+		} else if(receivedRR->slot2 != NULL){
+			inet_ntop(AF_INET, (receivedRR->slot2)->ipAddress, ipStr, INET_ADDRSTRLEN);
+			if(strcmp(ipAddress, ipStr) == 0){
+				slot = receivedRR->slot2;
+			} else if(receivedRR->slot3 != NULL){
+				inet_ntop(AF_INET, (receivedRR->slot3)->ipAddress, ipStr, INET_ADDRSTRLEN);
+				if(strcmp(ipAddress, ipStr) == 0){
+					slot = receivedRR->slot3;
+				} else if(receivedRR->slot4 != NULL){
+					inet_ntop(AF_INET, (receivedRR->slot4)->ipAddress, ipStr, INET_ADDRSTRLEN);
+					if(strcmp(ipAddress, ipStr) == 0){
+						slot = receivedRR->slot4;
+					}
+				}
+			}
+		}
+	}
+
+	if(slot != NULL){
+		if(randomValue == slot->randomValue){
+			correctRandomValue = TRUE;
+		}
+	}
+
+	return correctRandomValue;
+
+}

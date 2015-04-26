@@ -83,6 +83,7 @@ typedef struct AITFMessage {
 
 typedef struct AITFMessageListEntry {
 	Flow *flow;
+	int clientfd;
 	struct AITFMessageListEntry *next;
 } AITFMessageListEntry;
 
@@ -125,9 +126,9 @@ void reportError(char* errorMessage);
 pthread_t createAITFListeningThread(int port);
 void killAITFListeningThread(pthread_t thread);
 void* listenToAITFMessage(void *portNum);
-Flow* receiveAITFMessage();
+AITFMessageListEntry* receiveAITFMessage();
 void initializeAITFMessageList();
-void updateAITFMessageList(Flow* newAITFMessage);
+void updateAITFMessageList(Flow* newAITFMessage, int clientfd);
 
 //Free memory
 void freeFlow(Flow *flow);
@@ -157,8 +158,10 @@ int compareIPAddresses(struct in_addr* ip1, struct in_addr* ip2);
 
 pthread_t startRouteRecordThread();
 void* routeRecordMain(void* arg);
-int returnRandomValue();
+long returnRandomValue();
 
+
+int checkForCorrectRandomValue(char* ipAddress, long randomValue, Flow* receivedFlow);
 
 #endif
 

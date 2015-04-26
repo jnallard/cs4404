@@ -114,6 +114,6 @@ void* routeRecordMain(void* arg){
 	return 0;
 }
 
-int returnRandomValue(){
+long returnRandomValue(){
 	return randomValue;
 }
