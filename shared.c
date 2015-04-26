@@ -83,12 +83,9 @@ Flow* createFlowStruct(struct in_addr* victimIP, struct in_addr* attackerIP,
 }
 
 //This function is used to send flow struct over the network  
+//Returns the socket file descriptor so communicate can still be looked at.
 int sendFlow(char* destIP, int port, Flow* flow){
 	// int sockfd;
-	char* flowString = writeFlowStructAsNetworkBuffer(flow);
-	printf("flow info - nonce 1, nonce 2, message type: %d, %d,%d\n", flow->nonce1, flow->nonce2, flow->messageType);
-	Flow *tmp = readAITFMessage(flowString);
-	printf("flow info - nonce 1, nonce 2, message type: %d, %d,%d\n", tmp->nonce1, tmp->nonce2, tmp->messageType);
 
 	int sockfd;
 	struct addrinfo hints, *res;
@@ -111,9 +108,17 @@ int sendFlow(char* destIP, int port, Flow* flow){
 		printf("Error in connect() when sending complaint\n");
 	}
 
-	int returnval;
+	sendFlowWithOpenConnection(sockfd, flow);
 
-	if((returnval = send(sockfd, flowString, MAX_FLOW_SIZE, 0)) < 0){
+	return sockfd;
+
+}
+
+int sendFlowWithOpenConnection(int connectionFd, Flow* flow){
+	int returnval = 0;
+	char* flowString = writeFlowStructAsNetworkBuffer(flow);
+
+	if((returnval = send(connectionFd, flowString, MAX_FLOW_SIZE, 0)) < 0){
 		printf("Error occurred when sending request\n");
 	} else {
 		printf("Request sent\n");
@@ -121,19 +126,7 @@ int sendFlow(char* destIP, int port, Flow* flow){
 		printf("packet %s\n", flowString);
 	}
 
-	int optval = 1;
-	if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval)){
-		printf("unable to let other processes to use the same socket: %s\n", strerror(errno));
-	}
-
-	if(close(sockfd) != 0){
-		printf("close socket failed, error: %s\n", strerror(errno));
-
-	}
-
-
 	return returnval;
-
 }
 
 

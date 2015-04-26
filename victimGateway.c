@@ -49,7 +49,8 @@ int main(int argc, char* argv[]){
 			gettimeofday(&startTime, NULL);
 			updateShadowFilteringTable();
 		}
-		Flow* flow = receiveAITFMessage(); 
+		AITFMessageListEntry* entry = receiveAITFMessage(); 
+		Flow* flow = entry->flow;
 		if(flow != NULL){
 			startHandleFlowThread(flow);
 		}
