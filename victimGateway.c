@@ -3,6 +3,7 @@
 
 extern int aitfListeningSocket;
 pthread_t aitfListeningThread;
+pthread_t routeRecordThread;
 
 void sigterm(int signum){
 	int optval = 1;
@@ -16,7 +17,8 @@ void sigterm(int signum){
 
 	}
 
-	killAITFListeningThread(aitfListeningThread);
+	killThread(aitfListeningThread);
+	killThread(routeRecordThread);
 	printf("Exiting...\n");
 	exit(1); 
 
@@ -33,6 +35,7 @@ int main(int argc, char* argv[]){
 	int running = TRUE;
 	struct timeval startTime;
 	gettimeofday(&startTime, NULL);
+	routeRecordThread = startRouteRecordThread();
 	aitfListeningThread = createAITFListeningThread(TCP_RECEIVING_PORT);
 
 	while(running == TRUE){
@@ -47,6 +50,7 @@ int main(int argc, char* argv[]){
 		waitMilliseconds(100);
 	}
 
-	killAITFListeningThread(aitfListeningThread);
+	killThread(aitfListeningThread);
+	killThread(routeRecordThread);
 	return 0;
 }

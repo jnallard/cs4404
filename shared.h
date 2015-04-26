@@ -26,6 +26,7 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <signal.h>
+#include <sys/wait.h>
 
 #define TRUE 0
 #define FALSE 1
@@ -124,7 +125,7 @@ pthread_mutex_t lock; //prevent race condition
 
 void reportError(char* errorMessage);
 pthread_t createAITFListeningThread(int port);
-void killAITFListeningThread(pthread_t thread);
+void killThread(pthread_t thread);
 void* listenToAITFMessage(void *portNum);
 AITFMessageListEntry* receiveAITFMessage();
 void initializeAITFMessageList();
@@ -159,6 +160,8 @@ int compareIPAddresses(struct in_addr* ip1, struct in_addr* ip2);
 pthread_t startRouteRecordThread();
 void* routeRecordMain(void* arg);
 long returnRandomValue();
+
+void manageFlow(struct in_addr* source, struct in_addr* dest, int willBlock);
 
 
 int checkForCorrectRandomValue(char* ipAddress, long randomValue, Flow* receivedFlow);

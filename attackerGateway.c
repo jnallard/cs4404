@@ -21,8 +21,8 @@ void sigterm(int signum){
 
 	}
 
-	killAITFListeningThread(aitfListeningThread);
-	killAITFListeningThread(routeRecordThread);
+	killThread(aitfListeningThread);
+	killThread(routeRecordThread);
 	printf("Exiting...\n");
 	exit(1); 
 
@@ -146,8 +146,8 @@ int main(int argc, char* argv[]){
 
 	}
 
-	killAITFListeningThread(aitfListeningThread);
-	killAITFListeningThread(routeRecordThread);
+	killThread(aitfListeningThread);
+	killThread(routeRecordThread);
 
 
 

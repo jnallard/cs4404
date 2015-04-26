@@ -309,9 +309,9 @@ pthread_t createAITFListeningThread(int port){
 }
 
 
-void killAITFListeningThread(pthread_t thread){
+void killThread(pthread_t thread){
 	if(pthread_kill(thread, SIGINT)){
-		reportError("Error joining thread\n");
+		reportError("Error killing thread\n");
 	}
 }
 
@@ -592,6 +592,7 @@ pthread_t startRouteRecordThread(){
 	if(pthread_create(&thread, NULL, routeRecordMain, &arg) != 0){
 		reportError("Error creating route record thread\n");
 	}
+	waitMilliseconds(500);
 	return thread;
 }
 
@@ -637,3 +638,87 @@ int checkForCorrectRandomValue(char* ipAddress, long randomValue, Flow* received
 	return correctRandomValue;
 
 }
+
+char** addArgs = NULL;
+char** deleteArgs = NULL;
+char* anyAddrSource = NULL;
+char* anyAddrDest = NULL;
+
+//This function will manage blocking flows using iptables.
+//source, can be null for any address, or set to the correct ip
+//dest, can be null for any address, or set to the correct ip
+//adding, defines if you want to remove a firewall rule (FALSE), or add one (TRUE)
+void manageFlow(struct in_addr* source, struct in_addr* dest, int adding){
+	if(addArgs == NULL){
+		char** addArgs = (char**) calloc(20, sizeof(char*));
+		addArgs[0] = strdup("/sbin/iptables");
+		addArgs[1] = strdup("-I"); //Insert
+		addArgs[2] = strdup("FORWARD");
+		addArgs[3] = strdup("1");
+		addArgs[4] = strdup("-s");
+		addArgs[5] = strdup(""); //Source Address
+		addArgs[6] = strdup("-d");
+		addArgs[7] = strdup(""); //Dest Address
+		addArgs[8] = strdup("-j");
+		addArgs[9] = strdup("DROP"); //Action
+		addArgs[10] = NULL; //End args
+	}
+	if(deleteArgs == NULL){
+		char** deleteArgs = (char**) calloc(20, sizeof(char*));
+		deleteArgs[0] = strdup("/sbin/iptables");
+		deleteArgs[1] = strdup("-D"); //Delete
+		deleteArgs[2] = strdup("FORWARD");
+		deleteArgs[3] = strdup("-s");
+		deleteArgs[4] = strdup(""); //Source Address
+		deleteArgs[5] = strdup("-d");
+		deleteArgs[6] = strdup(""); //Dest Address
+		deleteArgs[7] = strdup("-j");
+		deleteArgs[8] = strdup("DROP"); //Action
+		deleteArgs[9] = NULL; //End args
+	}
+	if(anyAddrSource == NULL){
+		anyAddrSource = strdup("0.0.0.0/0");
+	}
+	if(anyAddrDest == NULL){
+		anyAddrDest = strdup("0.0.0.0/0");
+	}
+
+	char* sourceString = anyAddrSource;
+	if(source != NULL){
+		char ipStr[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, source, ipStr, INET_ADDRSTRLEN);
+		sourceString = strdup(ipStr);
+	}
+
+	char* destString = anyAddrDest;
+	if(dest != NULL){
+		char ipStr[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, dest, ipStr, INET_ADDRSTRLEN);
+		destString = strdup(ipStr);
+	}
+
+	char** args;
+	if(adding == TRUE){
+		args = addArgs;
+		args[5] = sourceString;
+		args[7] = destString;
+	}
+	else{
+		args = deleteArgs;
+		args[4] = sourceString;
+		args[6] = destString;
+	}
+
+	int id = 0;
+	if ((id = fork()) == 0) {
+		execve(args[0], &args[0], 0);
+		printf("Execve failed\n");
+		exit(-1);
+	}
+	else {
+		int status;
+		waitpid(id, &status, 0);
+		return;
+	}
+}
+

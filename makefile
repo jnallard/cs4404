@@ -1,5 +1,7 @@
 all: clean shared.o attacker attackerGateway victim victimGateway
 
+check: all clean
+
 LINK_COMMAND=-Wall -pthread -lnfnetlink -lnetfilter_queue -o
 LINK_FILES=shared.o routeRecord.o
 
