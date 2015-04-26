@@ -95,11 +95,38 @@ void requestFlowBlocked(Flow* flow){
 	manageFlow(flow->attackerIP, flow->victimIP, TRUE);
 
 	flow->messageType = AITF_BLOCKING_REQUEST;
+	flow->nonce2 = createNonce(flow->attackerIP, flow->victimIP);
 	char* attackerGatewayIP = convertIPAddress(flow->routeRecord->slot1->ipAddress);
 
 	int connectionFd = sendFlow(attackerGatewayIP, TCP_RECEIVING_PORT, flow);
+	Flow* responseFlow = receiveFlowWithOpenConnection(connectionFd);
 
-			
+	//The attacker gateway did not respond
+	if(responseFlow == NULL){
+		escalateFlow(flow);
+		return;
+	}
+
+	//If the path we had wasn't right, or if we detected someone tampering with our messages, we will just block locally
+	if(responseFlow->messageType != AITF_REQUEST_REPLY || flow->nonce2 != responseFlow->nonce2){
+		waitMilliseconds(T_LONG);
+		manageFlow(flow->attackerIP, flow->victimIP, FALSE);
+		return;
+	}
+
+	//Everything else seems to be working up to this point, so respond to the messages
+	responseFlow->messageType = AITF_REPLY_ACKNOWLEDGEMENT;
+	sendFlowWithOpenConnection(connectionFd, responseFlow);
+	close(connectionFd);
+
+	addEntryToShadowFilteringTable(flow);
+
+	while(hasTimeElapsed(&startTime, T_TEMP) == FALSE){
+		waitMilliseconds(T_TEMP / 10);
+	}
+	manageFlow(flow->attackerIP, flow->victimIP, FALSE);
+		
+
 }
 
 void escalateFlow(Flow* flow){

@@ -56,6 +56,7 @@
 #define AITF_REQUEST_REPLY 2
 #define AITF_REPLY_ACKNOWLEDGEMENT 3
 #define AITF_ESCALATION_REQUEST 4
+#define AITF_REQUEST_REPLY_NEW_PATH 5
 
 typedef struct RouteRecordSlot {
 	struct in_addr* ipAddress;

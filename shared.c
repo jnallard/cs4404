@@ -13,7 +13,7 @@ int hasTimeElapsed(struct timeval* startTime, int milliseconds){
 	gettimeofday(&currentTime, NULL);
 	double currentTimeInMill = currentTime.tv_sec * 1000 + (currentTime.tv_usec) / 1000;
 	double expectedTime = startTime->tv_sec * 1000 + (startTime->tv_usec) / 1000 + milliseconds;
-	//return 1 if the time has passed, otherwise return 0
+	//return TRUE if the time has passed, otherwise return FALSE
 	int returnVal = (currentTimeInMill - expectedTime > 0) ? TRUE : FALSE;
 	return returnVal;
 }
@@ -136,6 +136,12 @@ Flow* receiveFlowWithOpenConnection(int connectionFd){
  	int count;
  	memset(buf, 0, MAX_FLOW_SIZE + 10);
  	count = recv(connectionFd, buf, MAX_FLOW_SIZE, 0);
+
+ 	//Nothing Received
+ 	if(count == 0){
+ 		return NULL;
+ 	}
+
  	buf[count] = '\0';
  	printf("count number %d\n", count);
  	printf("packet received. %s\n", buf);
