@@ -187,11 +187,11 @@ int main(int argc, char** argv){
 	//TODO replace the above sendto() with the logic below
 	pthread_t listeningThread = createAITFListeningThread(TCP_RECEIVING_PORT);
 
-	Flow* receivedFlow = NULL;
+	AITFMessageListEntry* receivedEntry = NULL;
 
 	while(1){
 		//either the attacker is in disobedient mode, or there is no complaint received
-		if(inDisobedientMode == TRUE || (receivedFlow = receiveAITFMessage()) == NULL){
+		if(inDisobedientMode == TRUE || (receivedEntry = receiveAITFMessage()) == NULL){
 			if(sendto(sockfd, packet, IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH, 0, 
 						(struct sockaddr*)&victimAddress, sizeof(victimAddress)) < 0){
 				printf("Unable to send packet.\n");
@@ -201,12 +201,12 @@ int main(int argc, char** argv){
 			//wait for T-send before resend the packet
 			waitMilliseconds(T_SEND);
 
-		} else if(receivedFlow->messageType == AITF_BLOCKING_REQUEST) {
+		} else if(receivedEntry != NULL && (receivedEntry->flow)->messageType == AITF_BLOCKING_REQUEST) {
 			printf("Blocking request received, attacker exits.\n");
 			break;
 
 		} else {
-			printf("Error receiving AITF message: message type %d\n", receivedFlow->messageType);
+			printf("Error receiving AITF message: message type %d\n", (receivedEntry->flow)->messageType);
 		}
 	}
 

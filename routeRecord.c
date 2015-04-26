@@ -114,6 +114,6 @@ void* routeRecordMain(void* arg){
 	pthread_exit(NULL);
 }
 
-int returnRandomValue(){
+long returnRandomValue(){
 	return randomValue;
 }
