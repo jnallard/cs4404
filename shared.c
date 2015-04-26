@@ -130,6 +130,24 @@ int sendFlowWithOpenConnection(int connectionFd, Flow* flow){
 }
 
 
+Flow* receiveFlowWithOpenConnection(int connectionFd){
+
+ 	char buf[2000];
+ 	int count;
+ 	memset(buf, 0, MAX_FLOW_SIZE + 10);
+ 	count = recv(connectionFd, buf, MAX_FLOW_SIZE, 0);
+ 	buf[count] = '\0';
+ 	printf("count number %d\n", count);
+ 	printf("packet received. %s\n", buf);
+
+ 	//handle AITF message
+	Flow *receivedFlow = readAITFMessage(buf);
+	printf("flow info - nonce 1, nonce 2, message type, string length: %d, %d,%d\n", 
+		receivedFlow->nonce1, receivedFlow->nonce2, receivedFlow->messageType);
+	return receivedFlow;
+}
+
+
 //This function converts a flow to a char buffer, easy to send over network
 char* writeFlowStructAsNetworkBuffer(Flow* flow) {
 	int in_addrSize = sizeof(struct in_addr);
@@ -344,18 +362,7 @@ void* listenToAITFMessage(void *portNum){
 	 		printf("Error in accept() when listening to AITF message. \n");
 	 	}
 
-	 	char buf[2000];
-	 	int count;
-	 	memset(buf, 0, MAX_FLOW_SIZE + 10);
-	 	count = recv(clientfd, buf, MAX_FLOW_SIZE, 0);
-	 	buf[count] = '\0';
-	 	printf("count number %d\n", count);
-	 	printf("packet received. %s\n", buf);
-
-	 	//handle AITF message
-		Flow *receivedFlow = readAITFMessage(buf);
-		printf("flow info - nonce 1, nonce 2, message type, string length: %d, %d,%d\n", 
-			receivedFlow->nonce1, receivedFlow->nonce2, receivedFlow->messageType);
+		Flow* receivedFlow = receiveFlowWithOpenConnection(clientfd);
 
 	 	updateAITFMessageList(receivedFlow, clientfd);
 
