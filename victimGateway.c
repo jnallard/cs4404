@@ -94,6 +94,11 @@ void requestFlowBlocked(Flow* flow){
 	//Block the flow temporarily
 	manageFlow(flow->attackerIP, flow->victimIP, TRUE);
 
+	flow->messageType = AITF_BLOCKING_REQUEST;
+	char* attackerGatewayIP = convertIPAddress(flow->routeRecord->slot1->ipAddress);
+
+	int connectionFd = sendFlow(attackerGatewayIP, TCP_RECEIVING_PORT, flow);
+
 			
 }
 
@@ -109,8 +114,7 @@ void escalateFlow(Flow* flow){
 	}
 	else{
 		//Otherwise, contact the gateway closest to the Attack Gateway
-		char nextGatewayIP[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, slot->ipAddress, nextGatewayIP, INET_ADDRSTRLEN);
+		char* nextGatewayIP = convertIPAddress(slot->ipAddress);
 		sendFlow(nextGatewayIP, TCP_RECEIVING_PORT, flow);
 	}
 }

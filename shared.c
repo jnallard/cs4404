@@ -463,6 +463,13 @@ struct in_addr* getInAddr(char* ipAddress){
 }
 
 
+char* convertIPAddress(struct in_addr* ipAddressStruct){
+	char ip[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, ipAddressStruct, ip, INET_ADDRSTRLEN);
+	return strdup(ip);
+}
+
+
 //To create nonce values, we will use a shared function that 
 //will hash the source and destination IP into a new value; 
 //we will XOR them together and XOR the result with a random 32-bit number. 

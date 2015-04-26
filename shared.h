@@ -109,6 +109,7 @@ Flow* createFlowStruct(struct in_addr* victimIP, struct in_addr* attackerIP,
 
 int sendFlow(char* destIP, int port, Flow* flow);
 int sendFlowWithOpenConnection(int connectionFd, Flow* flow);
+Flow* receiveFlowWithOpenConnection(int connectionFd);
 Flow* readAITFMessage(char* flowInfo);
 
 int createNonce(struct in_addr* sourceIP, struct in_addr* destIP);
@@ -138,6 +139,7 @@ void freeRouteRecord(RouteRecord *rr);
 //IP getting information
 char* getIPAddress(char* interface);
 struct in_addr* getInAddr(char* IPAddress);
+char* convertIPAddress(struct in_addr* ipAddressStruct);
 
 
 //For shadow filtering table
