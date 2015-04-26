@@ -72,7 +72,7 @@ typedef struct RouteRecord {
 
 } RouteRecord;
 
-typedef struct AITFMessage {
+typedef struct Flow {
 	struct in_addr* attackerIP;
 	struct in_addr* victimIP;
 	int nonce1;
@@ -107,7 +107,6 @@ Flow* createFlowStruct(struct in_addr* victimIP, struct in_addr* attackerIP,
 	RouteRecord* routeRecord, int nonce1, int nonce2, int messageType);
 
 int sendFlow(char* destIP, int port, Flow* flow);
-int sendFlowStruct(struct in_addr* destIP, Flow* flow);
 Flow* readAITFMessage(char* flowInfo);
 
 int createNonce(struct in_addr* sourceIP, struct in_addr* destIP);
@@ -144,6 +143,7 @@ typedef struct ShadowFilteringTableEntry {
 	Flow *flow;
 	struct timeval* startTime;
 	struct ShadowFilteringTableEntry *next;
+	int count;
 } ShadowFilteringTableEntry;
 
 

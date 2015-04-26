@@ -111,7 +111,7 @@ void* routeRecordMain(void* arg){
 	printf("closing library handle\n");
 	nfq_close(h);
 
-	return 0;
+	pthread_exit(NULL);
 }
 
 int returnRandomValue(){
