@@ -1,24 +1,8 @@
-#include <string.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <stdlib.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <ifaddrs.h>
-#include <netinet/in.h> 
-#include <netinet/ip.h>
-#include <netinet/udp.h>
-#include <signal.h>
 
 #include "shared.h"
 
 #define IPV4_HEADER_LENGTH 20
 #define UDP_HEADER_LENGTH 8
-
-//#define INTERFACE "eth0"
-#define INTERFACE "lo"
 
 int inDisobedientMode = FALSE;
 int spoofIPAddress = FALSE;
@@ -70,7 +54,6 @@ int main(int argc, char** argv){
 	sigaction(SIGINT, &action, NULL);
 
 
-
 	if(argc == 1){
 		reportError("Usage: sudo attacker true/false [spoof IP address]");
 	}
@@ -104,24 +87,25 @@ int main(int argc, char** argv){
 		strcpy(srcIPChar, argv[2]);
 	} else {
 
-		//code learned from http://stackoverflow.com/questions/20800319/how-to-get-my-ip-address-in-c-linux
-		struct ifaddrs *ifaddr, *tmp;
-		if(getifaddrs(&ifaddr) == -1){
-			reportError("getifaddrs() failed");
-		}
-		tmp = ifaddr;
-		while(tmp){
-			if(tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET){
-				printf("interface name %s\n", tmp->ifa_name);
-				if(strcmp(tmp->ifa_name, INTERFACE) == 0){
-					strcpy(srcIPChar, inet_ntoa(((struct sockaddr_in *)tmp->ifa_addr)->sin_addr));
-					break;
-				}
-			}
-			tmp = tmp->ifa_next;
-		}
+		// //code learned from http://stackoverflow.com/questions/20800319/how-to-get-my-ip-address-in-c-linux
+		// struct ifaddrs *ifaddr, *tmp;
+		// if(getifaddrs(&ifaddr) == -1){
+		// 	reportError("getifaddrs() failed");
+		// }
+		// tmp = ifaddr;
+		// while(tmp){
+		// 	if(tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET){
+		// 		printf("interface name %s\n", tmp->ifa_name);
+		// 		if(strcmp(tmp->ifa_name, INTERFACE) == 0){
+		// 			strcpy(srcIPChar, inet_ntoa(((struct sockaddr_in *)tmp->ifa_addr)->sin_addr));
+		// 			break;
+		// 		}
+		// 	}
+		// 	tmp = tmp->ifa_next;
+		// }
+		strcpy(srcIPChar, getIPAddress(INTERFACE));
 	}
-	printf("Use IP address %s\n", srcIPChar);
+	//printf("Use IP address %s\n", srcIPChar);
 
 	//get destination information -- TODO
 	bzero(&victimAddress, sizeof(victimAddress));
@@ -130,14 +114,12 @@ int main(int argc, char** argv){
 	if(inet_pton(AF_INET, destIPChar, &(victimAddress.sin_addr)) != 1){
 		reportError("inet_pton failed");
 	}
-	// victimAddress.sin_addr.s_addr = ?
-
 
 
 
 
 	//construct datagram
-		//code comes from udp4.c in http://www.pdbuchan.com/rawsock/rawsock.html
+	//code learned from udp4.c in http://www.pdbuchan.com/rawsock/rawsock.html
 
 	//IPv4 header
 	struct ip iphdr;
@@ -179,12 +161,9 @@ int main(int argc, char** argv){
 		reportError("setsockopt() failed");
 	}
 
-	//bind socket to interface index??? TODO
+
+
 	//send packet
-
-
-
-	//TODO replace the above sendto() with the logic below
 	pthread_t listeningThread = createAITFListeningThread(TCP_RECEIVING_PORT);
 
 	AITFMessageListEntry* receivedEntry = NULL;
@@ -212,44 +191,5 @@ int main(int argc, char** argv){
 
 	killThread(listeningThread);
 	
-//-------------------
-
-	// hints.ai_family = AF_UNSPEC;
-	// hints.ai_socktype = SOCK_DGRAM;
-	// hints.ai_protocol = 0;
-	// hints.ai_flags = AI_ADDRCONFIG; //AI_PASSIVE? TODO
-
-	// if(getaddrinfo(NULL, PORT, &hints, &res) != 0){ //TODO NULL?
-	// 	printf("getaddrinfo() failed\n");
-	// 	exit(1);
-	// }
-
-	// for(p = res; p != NULL; p = p->ai_next){
-	// 	sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-		
-	// 	if(sockfd < 0) continue;
-
-	// 	if(bind(sockfd, p->ai_addr, p->ai_addrlen) == 0) break;
-
-	// 	close(sockfd);
-
-	// }
-
-	// if(p == NULL){
-	// 	reportError("could not bind");
-	// }
-
-	// freeaddrinfo(res);
-
-
-
-	//send or sendto
-
-// http://www.microhowto.info/howto/send_a_udp_datagram_in_c.html
-// http://www.overclock.net/t/1264544/sending-udp-packets-c-programming
-
-	//
-	//http://www.binarytides.com/raw-udp-sockets-c-linux/
-	//
 	return 0;
 }

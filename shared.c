@@ -67,7 +67,7 @@ void addGatewayInfo(RouteRecord* routeRecord, struct in_addr* ipAddress, long ra
 
 }
 
-
+//This function creates a flow struct from the passed in parameters Ip,
 Flow* createFlowStruct(struct in_addr* victimIP, struct in_addr* attackerIP, 
 		RouteRecord* routeRecord, int nonce1, int nonce2, int messageType){
 
@@ -388,6 +388,7 @@ AITFMessageListEntry* receiveAITFMessage(int* clientfd){
 
 	AITFMessageListEntry* returnedMessage = NULL;
 	if(messageListPtr != NULL){
+		returnedMessage = messageListPtr;
 		messageListPtr = messageListPtr->next;
 	}
 
