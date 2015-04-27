@@ -10,7 +10,17 @@
 //http://www.netfilter.org/projects/libnetfilter_queue/doxygen/group__LibrarySetup.html
 //http://www.netfilter.org/projects/libnetfilter_queue/doxygen/group__Queue.html
 
+typedef struct RRFilterEntry {
+	struct in_addr* source;
+	struct in_addr* dest;
+	struct timeval* timeStart;
+	int delayedCountTime;
+	int count;
+	struct RRFilterEntry *next;
+} RRFilterEntry;
 
+RRFilterEntry* rrFilterEntryHead = NULL;
+pthread_mutex_t rrFilteringLock;
 
 struct in_addr* gatewayAddr;
 long randomValue = 0;
@@ -33,6 +43,22 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 
 		int protocol = (int) packet_data[9];
 		printf("protocol: [%d]", protocol);
+
+		//Get the source and destination IPs
+		char srcIP[33];
+		inet_ntop(AF_INET, packet_data+12, srcIP, INET_ADDRSTRLEN);
+		srcIP[32] = '\0';
+		char destIP[33];
+		inet_ntop(AF_INET, packet_data+16, destIP, INET_ADDRSTRLEN);
+		destIP[32] = '\0';
+
+		struct in_addr* destAddr = getInAddr(destIP);
+		struct in_addr* sourceAddr = getInAddr(srcIP);
+
+		//If we're blocking the flow, drop the packet.
+		if(checkForFilteredFlows(sourceAddr, destAddr) == TRUE){
+			return nfq_set_verdict(qh, id, NF_DROP, 0, NULL);
+		}
 
 		//Means the route record shim is not already there, so add it.
 		if(protocol != ROUTE_RECORD_PROTOCOL){
@@ -62,9 +88,12 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 }
 
 void* routeRecordMain(void* arg){
+
 	randomValue = createLongRandomValue();
 	char* gatewayIP = getIPAddress(INTERFACE);
 	gatewayAddr = getInAddr(gatewayIP);
+
+	initializeRRFilterList();
 
 	struct nfq_handle* h = nfq_open();
 	if (!h) {
@@ -116,4 +145,91 @@ void* routeRecordMain(void* arg){
 
 long returnRandomValue(){
 	return randomValue;
+}
+
+//initialize the AITF message list to point to null and the lock
+void initializeRRFilterList(){
+	rrFilterEntryHead = NULL;
+	rrFilteringLock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+}
+
+
+//This function will manage blocking flows using iptables.
+//source, can be null for any address, or set to the correct ip
+//dest, can be null for any address, or set to the correct ip
+//adding, defines if you want to remove a firewall rule (FALSE), or add one (TRUE)
+void addBlockedFlow(struct in_addr* source, struct in_addr* dest, int delayedCountTime){
+
+	RRFilterEntry *entry = (RRFilterEntry*) calloc(1, sizeof(RRFilterEntry));
+
+	struct timeval* currentTime = (struct timeval*)malloc(sizeof(struct timeval));
+	gettimeofday(currentTime, NULL);
+
+	entry->source = source;
+	entry->dest = dest;
+	entry->timeStart = currentTime;
+	entry->next = NULL;
+	entry->count = 0;
+	entry->delayedCountTime = delayedCountTime;
+
+	pthread_mutex_lock(&(rrFilteringLock));
+
+	if(rrFilterEntryHead == NULL){
+		rrFilterEntryHead = entry;
+	} else {
+		RRFilterEntry *tmp = rrFilterEntryHead;
+		while(tmp->next != NULL){
+			tmp = tmp->next;
+		}
+		tmp->next = entry;
+	}
+
+	pthread_mutex_unlock(&(rrFilteringLock));
+}
+
+
+int removeBlockedFlowAndCountViolations(struct in_addr* source, struct in_addr* dest){
+	int count = 0;
+	pthread_mutex_lock(&(rrFilteringLock));
+
+	if(rrFilterEntryHead != NULL){
+		RRFilterEntry *tmp = rrFilterEntryHead;
+		RRFilterEntry *previous = NULL;
+		while((compareIPAddresses(source, tmp->source) != TRUE || compareIPAddresses(dest, tmp->dest) != TRUE) && tmp->next != NULL){
+				previous = tmp;
+				tmp = tmp->next;
+		}
+		
+		if(compareIPAddresses(source, tmp->source) == TRUE && compareIPAddresses(dest, tmp->dest) == TRUE){
+			count = tmp->count;
+			if(previous != NULL){
+				previous->next = tmp->next;
+			}
+			else{
+				rrFilterEntryHead = tmp->next;
+			}
+
+			free(tmp->source);
+			free(tmp->dest);
+			free(tmp->timeStart);
+			free(tmp);
+		}
+	}
+
+	pthread_mutex_unlock(&(rrFilteringLock));
+	return count;
+}
+
+int checkForFilteredFlows(struct in_addr* source, struct in_addr* dest){
+	RRFilterEntry* tmp = rrFilterEntryHead;
+	while(tmp != NULL){
+		if((tmp->source == NULL || compareIPAddresses(source, tmp->source) == TRUE) 
+			&& (tmp->dest == NULL || compareIPAddresses(dest, tmp->dest) == TRUE) ) {
+			if(hasTimeElapsed(tmp->timeStart, tmp->delayedCountTime) == TRUE){
+				tmp->count = tmp->count + 1;
+			}
+			return TRUE;
+		}
+	}
+	return FALSE;
 }

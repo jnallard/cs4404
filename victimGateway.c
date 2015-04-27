@@ -92,7 +92,8 @@ void requestFlowBlocked(Flow* flow){
 	gettimeofday(&startTime, NULL);
 
 	//Block the flow temporarily
-	manageFlow(flow->attackerIP, flow->victimIP, TRUE);
+	//manageFlow(flow->attackerIP, flow->victimIP, TRUE);
+	addBlockedFlow(flow->attackerIP, flow->victimIP, T_TEMP);
 
 	flow->messageType = AITF_BLOCKING_REQUEST;
 	flow->nonce2 = createNonce(flow->attackerIP, flow->victimIP);
@@ -110,7 +111,8 @@ void requestFlowBlocked(Flow* flow){
 	//If the path we had wasn't right, or if we detected someone tampering with our messages, we will just block locally
 	if(responseFlow->messageType != AITF_REQUEST_REPLY || flow->nonce2 != responseFlow->nonce2){
 		waitMilliseconds(T_LONG);
-		manageFlow(flow->attackerIP, flow->victimIP, FALSE);
+		//manageFlow(flow->attackerIP, flow->victimIP, FALSE);
+		removeBlockedFlowAndCountViolations(flow->attackerIP, flow->attackerIP);
 		return;
 	}
 
@@ -124,7 +126,8 @@ void requestFlowBlocked(Flow* flow){
 	while(hasTimeElapsed(&startTime, T_TEMP) == FALSE){
 		waitMilliseconds(T_TEMP / 10);
 	}
-	manageFlow(flow->attackerIP, flow->victimIP, FALSE);
+	//manageFlow(flow->attackerIP, flow->victimIP, FALSE);
+	removeBlockedFlowAndCountViolations(flow->attackerIP, flow->attackerIP);
 		
 
 }
@@ -137,7 +140,8 @@ void escalateFlow(Flow* flow){
 
 	//If there is no information or I'm the next available gateway, block locally.
 	if(slot == NULL || (slot->ipAddress != NULL && compareIPAddresses(slot->ipAddress, thisGatewayIP) == TRUE)){
-		manageFlow(NULL, flow->victimIP, TRUE);
+		//manageFlow(NULL, flow->victimIP, TRUE);
+		addBlockedFlow(flow->attackerIP, flow->victimIP, T_LONG);
 	}
 	else{
 		//Otherwise, contact the gateway closest to the Attack Gateway
