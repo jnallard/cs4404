@@ -221,6 +221,9 @@ int removeBlockedFlowAndCountViolations(struct in_addr* source, struct in_addr* 
 }
 
 int checkForFilteredFlows(struct in_addr* source, struct in_addr* dest){
+
+	pthread_mutex_lock(&(rrFilteringLock));
+
 	RRFilterEntry* tmp = rrFilterEntryHead;
 	while(tmp != NULL){
 		if((tmp->source == NULL || compareIPAddresses(source, tmp->source) == TRUE) 
@@ -231,5 +234,8 @@ int checkForFilteredFlows(struct in_addr* source, struct in_addr* dest){
 			return TRUE;
 		}
 	}
+	
+	pthread_mutex_unlock(&(rrFilteringLock));
+
 	return FALSE;
 }
