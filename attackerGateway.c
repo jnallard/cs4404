@@ -9,6 +9,8 @@ pthread_t routeRecordThread;
 char* ownIPAddress;
 long randomValue;
 
+int isDisobedientGateway = FALSE;
+
 
 void sigterm(int signum){
 	int optval = 1;
@@ -29,6 +31,7 @@ void sigterm(int signum){
 
 }
 
+//This function stop forwarding flow sending from attackerIP to victimIP
 void* disconnectAttacker(struct in_addr* attackerIP, struct in_addr* victimIP){
 	manageFlow(attackerIP, victimIP, TRUE);
 
@@ -38,9 +41,10 @@ void* disconnectAttacker(struct in_addr* attackerIP, struct in_addr* victimIP){
 	pthread_exit(NULL);
 }
 
-void* handleEscalationRequest(void* tableEntry){
+//This function handles escalation request by stopping the flow sending from 
+//the last gateway to the given victim IP address
+void handleEscalationRequest(AITFMessageListEntry* receivedEntry){
 	
-	AITFMessageListEntry* receivedEntry = (AITFMessageListEntry*)tableEntry;
 	Flow* flow = receivedEntry->flow;
 	RouteRecord *rr = flow->routeRecord;
 	struct in_addr* ipAddress = getInAddr(ownIPAddress);
@@ -61,11 +65,10 @@ void* handleEscalationRequest(void* tableEntry){
 		disconnectAttacker(lastGatewayIP, flow->victimIP);
 	}
 
-	pthread_exit(NULL);
-
 }
 
-
+//This function responds to AITF handshake request.
+//It will also set up the filter and manage the flow if the gateway is obedient.
 void handleAITFHandshake(AITFMessageListEntry *entry){
 	Flow* flow = entry->flow;
 	int clientfd = entry->clientfd;
@@ -85,14 +88,22 @@ void handleAITFHandshake(AITFMessageListEntry *entry){
 	//check if flow is null and its nonce value and if the message type is acknowledgement
 	if(ackFlow == NULL || ackFlow->nonce1 != nonce || ackFlow->messageType != AITF_REPLY_ACKNOWLEDGEMENT){
 		//if nonce value not correct, thread finishes
+		if(ackFlow == NULL) printf("Didn't receive acknowledgement in handshake, thread exits.\n");
+		else if(ackFlow->nonce1 != nonce) printf("Incorrect nonce1 value received, thread exits. \n");
+		else if(ackFlow->messageType != AITF_REPLY_ACKNOWLEDGEMENT) printf("Ack message doesn't contain correct message type.\n");
 		pthread_exit(NULL);
+	}
+
+	//if it's disobedient gateway, when handshake is complete, do not manage flow and exit
+	if(isDisobedientGateway == TRUE){
+		pthread_exit(NULL);		
 	}
 
 	//set up the temporary filter for t-temp
 	manageFlow(ackFlow->attackerIP, ackFlow->victimIP, TRUE);
+	printf("Temporary filter is set up for T-temp.\n");
 
 	//send AITF message to attacker
-
 	RouteRecord* RRToAttacker = createRouteRecord(getInAddr(ownIPAddress), randomValue);
 	Flow* flowToAttacker = createFlowStruct(flow->victimIP, flow->attackerIP, RRToAttacker, nonce, 0, AITF_BLOCKING_REQUEST);
 	int socketfd = sendFlow(convertIPAddress(flow->attackerIP), TCP_SENDING_PORT, flowToAttacker);
@@ -104,16 +115,23 @@ void handleAITFHandshake(AITFMessageListEntry *entry){
 	//TODO check to see if the flow continues and disconnect A??
 	//remove temporary filter after t-temp and add to shadow filtering table
 	manageFlow(ackFlow->attackerIP, ackFlow->victimIP, FALSE);
+	printf("Temporary filter removed. \n");
 	addEntryToShadowFilteringTable(flow);
 
 }
 
+//This function handles AITF messages by checking its validity and type
 void* handleAITFMessage(void *tableEntry){
 	AITFMessageListEntry* receivedEntry = (AITFMessageListEntry*)tableEntry;
 	//check to see if the flow is in shadow filtering table once	
-	if(isInShadowFilteringTable(receivedEntry->flow) == 1){
+	if(isInShadowFilteringTable(receivedEntry->flow) > 0){
 		//disconnect Attacker
 		disconnectAttacker((receivedEntry->flow)->attackerIP, NULL);
+
+	} else if((receivedEntry->flow)->messageType == AITF_ESCALATION_REQUEST){
+		//check if it's an escalation request
+		printf("Handle escalation request.\n");
+		handleEscalationRequest(receivedEntry);			
 
 	} else if((receivedEntry->flow)->messageType != AITF_BLOCKING_REQUEST){
 		//the first received AITF message type should be the blocking request
@@ -139,6 +157,12 @@ int main(int argc, char* argv[]){
 	sigaction(SIGTERM, &action, NULL);
 	sigaction(SIGINT, &action, NULL);
 
+	//check for arguments
+	if(argc == 2 && (strcmp(argv[1], "false") == 0 || strcmp(argv[1], "FALSE") == 0)){
+		printf("Attacker gateway will respond to handshake but not block the flow.\n");
+		isDisobedientGateway = TRUE;
+	}
+
 	struct timeval startTime;
 	gettimeofday(&startTime, NULL);
 
@@ -159,16 +183,8 @@ int main(int argc, char* argv[]){
 			updateShadowFilteringTable();
 		}
 		if((receivedEntry = receiveAITFMessage()) != NULL){
-			//check if it's an escalation request
-			//TODO spoofed escalation request?
-			if((receivedEntry->flow)->messageType == AITF_ESCALATION_REQUEST){
-				pthread_t thread;
-				if(pthread_create(&thread, NULL, handleEscalationRequest, receivedEntry) != 0){
-					reportError("Error handling escalation request.\n");
-				}
-			}
 			//check if flow contains correct R number
-			else if(checkForCorrectRandomValue(ownIPAddress, randomValue, receivedEntry->flow) == TRUE){
+			if(checkForCorrectRandomValue(ownIPAddress, randomValue, receivedEntry->flow) == TRUE){
 
 				pthread_t thread;
 				if(pthread_create(&thread, NULL, handleAITFMessage, receivedEntry) != 0){
@@ -177,6 +193,7 @@ int main(int argc, char* argv[]){
 
 			} else {
 				//send correct path to victim gateway
+				printf("Random value associated with gateway is incorrect.\n");
 				Flow* flow = receivedEntry->flow;
 				flow->messageType = AITF_REQUEST_REPLY_NEW_PATH;
 
