@@ -33,10 +33,12 @@ void sigterm(int signum){
 
 //This function stop forwarding flow sending from attackerIP to victimIP
 void* disconnectAttacker(struct in_addr* attackerIP, struct in_addr* victimIP){
-	manageFlow(attackerIP, victimIP, TRUE);
+	//manageFlow(attackerIP, victimIP, TRUE);
+	addBlockedFlow(attackerIP, victimIP, T_LONG);
 
 	waitMilliseconds(T_LONG);
-	manageFlow(attackerIP, victimIP, FALSE);
+	//manageFlow(attackerIP, victimIP, FALSE);
+	removeBlockedFlowAndCountViolations(attackerIP, attackerIP);
 
 	pthread_exit(NULL);
 }
@@ -100,7 +102,8 @@ void handleAITFHandshake(AITFMessageListEntry *entry){
 	}
 
 	//set up the temporary filter for t-temp
-	manageFlow(ackFlow->attackerIP, ackFlow->victimIP, TRUE);
+	//manageFlow(ackFlow->attackerIP, ackFlow->victimIP, TRUE);
+	addBlockedFlow(ackFlow->attackerIP, ackFlow->victimIP, T_TEMP);
 	printf("Temporary filter is set up for T-temp.\n");
 
 	//send AITF message to attacker
@@ -114,7 +117,8 @@ void handleAITFHandshake(AITFMessageListEntry *entry){
 	
 	//TODO check to see if the flow continues and disconnect A??
 	//remove temporary filter after t-temp and add to shadow filtering table
-	manageFlow(ackFlow->attackerIP, ackFlow->victimIP, FALSE);
+	//manageFlow(ackFlow->attackerIP, ackFlow->victimIP, FALSE);
+	int messageCountViolations = removeBlockedFlowAndCountViolations(ackFlow->attackerIP, ackFlow->attackerIP);
 	printf("Temporary filter removed. \n");
 	addEntryToShadowFilteringTable(flow);
 

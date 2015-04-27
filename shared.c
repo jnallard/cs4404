@@ -665,7 +665,7 @@ int checkForCorrectRandomValue(char* ipAddress, long randomValue, Flow* received
 
 }
 
-char** addArgs = NULL;
+/*char** addArgs = NULL;
 char** deleteArgs = NULL;
 char* anyAddrSource = NULL;
 char* anyAddrDest = NULL;
@@ -746,5 +746,5 @@ void manageFlow(struct in_addr* source, struct in_addr* dest, int adding){
 		waitpid(id, &status, 0);
 		return;
 	}
-}
+}*/
 

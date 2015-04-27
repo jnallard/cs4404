@@ -30,7 +30,7 @@ victimGateway: victimGateway.o $(LINK_FILES)
 victimGateway.o: victimGateway.c shared.h
 	gcc -Wall -c victimGateway.c
 
-routeRecord.o: routeRecord.c shared.h
+routeRecord.o: routeRecord.c shared.h shared.c
 	gcc -Wall -c routeRecord.c
 
 clean:

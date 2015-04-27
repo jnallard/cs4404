@@ -166,7 +166,12 @@ pthread_t startRouteRecordThread();
 void* routeRecordMain(void* arg);
 long returnRandomValue();
 
-void manageFlow(struct in_addr* source, struct in_addr* dest, int willBlock);
+//void manageFlow(struct in_addr* source, struct in_addr* dest, int willBlock);
+
+void addBlockedFlow(struct in_addr* source, struct in_addr* dest, int delayedCountTime);
+int removeBlockedFlowAndCountViolations(struct in_addr* source, struct in_addr* dest);
+int checkForFilteredFlows(struct in_addr* source, struct in_addr* dest);
+void initializeRRFilterList();
 
 
 int checkForCorrectRandomValue(char* ipAddress, long randomValue, Flow* receivedFlow);
