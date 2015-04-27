@@ -542,17 +542,19 @@ void addEntryToShadowFilteringTable(Flow* flow){
 }
 
 //This function checks to see if the given flow is already in the shadow filtering table
-//by comparing the attacker IP address inside the flow. If it is not in the flow, it returns 0, otherwise
+//by comparing the source and dest IP address inside the flow. If it is not in the flow, it returns 0, otherwise
 //it returns how many times it's been checked.
 int isInShadowFilteringTable(Flow* flow){
 	struct in_addr* attackerIP = flow->attackerIP;
+	struct in_addr* victimIP = flow->victimIP;
 	ShadowFilteringTableEntry *ptr = headTableEntry;
 	int count = 0;
 
 	pthread_mutex_lock(&(filteringTableLock));
 
 	while(ptr != NULL){
-		if(compareIPAddresses(attackerIP, (ptr->flow)->attackerIP) == 0){
+		if(compareIPAddresses(attackerIP, (ptr->flow)->attackerIP) == 0 && 
+			compareIPAddresses(victimIP, (ptr->flow)->victimIP) == 0){
 			count = ptr->count;
 			ptr->count = ptr->count + 1;
 			break;
