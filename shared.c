@@ -428,6 +428,8 @@ void updateAITFMessageList(Flow* newAITFMessage, int clientfd){
 
 }
 
+
+//This function frees memory of a flow struct
 void freeFlow(Flow *flow) {
 	free(flow->attackerIP);
 	free(flow->victimIP);
@@ -435,15 +437,20 @@ void freeFlow(Flow *flow) {
 	free(flow);
 }
 
+//This function frees memory of a RouteRecord struct
 void freeRouteRecord(RouteRecord *rr){
-	free(rr->slot1);
-	free(rr->slot2);
-	free(rr->slot3);
-	free(rr->slot4);
+	freeRouteRecordSlot(rr->slot1);
+	freeRouteRecordSlot(rr->slot2);
+	freeRouteRecordSlot(rr->slot3);
+	freeRouteRecordSlot(rr->slot4);
 	free(rr);
 }
 
-
+//This funciton fress memory of a RouteRecordSlot struct
+void freeRouteRecordSlot(RouteRecordSlot *rrs){
+	free(rrs->ipAddress);
+	free(rrs);
+}
 
 //Code learned from http://stackoverflow.com/questions/2283494/get-ip-address-of-an-interface-on-linux
 char* getIPAddress(char* interface){
@@ -462,14 +469,14 @@ char* getIPAddress(char* interface){
 	return hostIP;
 }
 
-
+//This function converts ip address of char array type to the in_addr struct
 struct in_addr* getInAddr(char* ipAddress){
 	struct in_addr* tmpAddr = (struct in_addr*) calloc(1, sizeof(struct in_addr));
 	inet_pton(AF_INET, ipAddress, tmpAddr);
 	return tmpAddr;
 }
 
-
+//This function converts ip address of in_addr type to char array
 char* convertIPAddress(struct in_addr* ipAddressStruct){
 	char ip[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, ipAddressStruct, ip, INET_ADDRSTRLEN);

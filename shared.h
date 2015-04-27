@@ -136,6 +136,7 @@ void updateAITFMessageList(Flow* newAITFMessage, int clientfd);
 //Free memory
 void freeFlow(Flow *flow);
 void freeRouteRecord(RouteRecord *rr);
+void freeRouteRecordSlot(RouteRecordSlot *rrs);
 
 //IP getting information
 char* getIPAddress(char* interface);
