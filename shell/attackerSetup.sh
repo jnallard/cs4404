@@ -1,1 +1,1 @@
-sudo ip route add 10.4.12.0/24 via 10.4.12.2
+sudo ip route add 10.4.12.0/24 via 10.4.12.2;sudo sysctl -w net.ipv4.ip_forward=1
