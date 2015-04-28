@@ -1,0 +1,33 @@
+---------------
+attacker
+10.4.12.1
+
+route through attacker gateway:
+	 ip route add 10.4.12.0/24 via 10.4.12.2
+
+
+
+----------------
+attacker gateway
+10.4.12.2
+
+---------------
+gateway 2
+10.4.12.3
+
+---------------
+gateway 3
+10.4.12.4
+
+
+---------------
+victim gateway 
+10.4.12.5
+
+
+---------------
+victim
+10.4.12.6
+
+route through victim gateway:
+	 ip route add 10.4.12.0/24 via 10.4.12.5
