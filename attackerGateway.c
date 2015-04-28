@@ -113,14 +113,22 @@ void handleAITFHandshake(AITFMessageListEntry *entry){
 	close(socketfd);
 
 	//Wait T-temp here
-	waitMilliseconds(T_TEMP);
+	waitMilliseconds(T_TEMP * 2);
 	
 	//TODO check to see if the flow continues and disconnect A??
 	//remove temporary filter after t-temp and add to shadow filtering table
 	//manageFlow(ackFlow->attackerIP, ackFlow->victimIP, FALSE);
 	int messageCountViolations = removeBlockedFlowAndCountViolations(ackFlow->attackerIP, ackFlow->attackerIP);
 	printf("Temporary filter removed. \n");
-	addEntryToShadowFilteringTable(flow);
+
+
+	if(messageCountViolations > 0){
+		disconnectAttacker(flow->attackerIP, NULL);
+	} else {
+		addEntryToShadowFilteringTable(flow);
+
+	}
+
 
 }
 
