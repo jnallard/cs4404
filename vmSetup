@@ -11,12 +11,14 @@ route through attacker gateway:
 attacker gateway
 10.4.12.2
 
+
+
 ---------------
 gateway 2
 10.4.12.3
 
 ---------------
-gateway 3
+gateway 3it 
 10.4.12.4
 
 
@@ -31,3 +33,10 @@ victim
 
 route through victim gateway:
 	 ip route add 10.4.12.0/24 via 10.4.12.5
+
+
+
+forwarding rules for gateways
+sysctl -w net.ipv4.ip_forward=1
+
+check: sysctl net.ipv4.ip_forward
