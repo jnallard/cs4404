@@ -1,10 +1,16 @@
-all: clean shared.o attacker attackerGateway victim victimGateway
+all: clean shared.o attacker attackerGateway victim victimGateway attackerTest
 
 LINK_COMMAND=-Wall -pthread -lnfnetlink -lnetfilter_queue -o
 LINK_FILES=shared.o routeRecord.o
 
 shared.o: shared.c shared.h
 	gcc -Wall -pthread -c shared.c
+
+attackerTest: attackerTest.o $(LINK_FILES)
+	gcc attackerTest.o $(LINK_FILES) $(LINK_COMMAND) attackerTest
+
+attackerTest.o: attackerTest.c shared.h
+	gcc -Wall -c attackerTest.c
 
 attacker: attacker.o $(LINK_FILES)
 	gcc attacker.o $(LINK_FILES) $(LINK_COMMAND) attacker
