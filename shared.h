@@ -42,7 +42,6 @@
 #define VICTIM_IP "10.4.12.6"
 #define VICTIM_GATEWAY_IP "10.4.12.5"
 #define UDP_PORT 4404
-#define TCP_SENDING_PORT 4405
 #define TCP_RECEIVING_PORT 4406
 
 //chosen value for contants; see results section
