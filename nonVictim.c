@@ -94,29 +94,29 @@ int main(int argc, char* argv[]){
 			printf("Time elapsed since first packet received: %ld\n", currentTimeInMill - startTimeInMill);
 
 
-			if((*entry)->count > ATTACK_COUNT_THRESHOLD){
-				printf("Attack Threshold Met for [%s] - Reporting and resetting!\n\n", srcIP);
+			// if((*entry)->count > ATTACK_COUNT_THRESHOLD){
+			// 	printf("Attack Threshold Met for [%s] - Reporting and resetting!\n\n", srcIP);
 
-				//Complain to Victim Gateway Here
-				//Create Flow struct based on received Route Record first
-				//TODO below: temporary implementation
-				RouteRecord* tempRR = readRouteRecord(buffer + 20);
+			// 	//Complain to Victim Gateway Here
+			// 	//Create Flow struct based on received Route Record first
+			// 	//TODO below: temporary implementation
+			// 	RouteRecord* tempRR = readRouteRecord(buffer + 20);
 
-				struct in_addr* victimAddr = getInAddr(destIP);
-				struct in_addr* attackerAddr = getInAddr(srcIP);
+			// 	struct in_addr* victimAddr = getInAddr(destIP);
+			// 	struct in_addr* attackerAddr = getInAddr(srcIP);
 
-				Flow* flow = createFlowStruct(victimAddr, attackerAddr, tempRR, createNonce(victimAddr, attackerAddr), 0, AITF_BLOCKING_REQUEST);
+			// 	Flow* flow = createFlowStruct(victimAddr, attackerAddr, tempRR, createNonce(victimAddr, attackerAddr), 0, AITF_BLOCKING_REQUEST);
 
-				if(flow != NULL){
-					sendFlow(VICTIM_GATEWAY_IP, TCP_RECEIVING_PORT, flow);
-				}
-				else{
-					printf("Error reading flow!");
-				}
-				//Wait T-temp here
-				waitMilliseconds(T_TEMP);
-				(*entry)->count = 0;
-			}
+			// 	if(flow != NULL){
+			// 		sendFlow(VICTIM_GATEWAY_IP, TCP_RECEIVING_PORT, flow);
+			// 	}
+			// 	else{
+			// 		printf("Error reading flow!");
+			// 	}
+			// 	//Wait T-temp here
+			// 	waitMilliseconds(T_TEMP);
+			// 	(*entry)->count = 0;
+			// }
 		}
 	}
 }

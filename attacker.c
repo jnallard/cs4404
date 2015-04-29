@@ -9,6 +9,9 @@ int spoofIPAddress = FALSE;
 
 int sockfd;
 extern int aitfListeningSocket;
+int count;
+char *packet;
+
 
 uint16_t ipChecksum(){ //TODO
 	return 0;
@@ -21,6 +24,26 @@ uint16_t udpChecksum(){ //TODO
 
 void sigterm(int signum){
 	int optval = 1;
+
+	waitMilliseconds(100);
+
+	//send a packet to non-victim before stopping
+	struct sockaddr_in nonVictimAddress;
+	char* nonVictimIPChar = NON_VICTIM_IP;
+	bzero(&nonVictimAddress, sizeof(nonVictimAddress));
+	nonVictimAddress.sin_family = AF_INET;
+	nonVictimAddress.sin_port = htons(UDP_PORT);
+	if(inet_pton(AF_INET, nonVictimIPChar, &(nonVictimAddress.sin_addr)) != 1){
+		reportError("inet_pton failed");
+	}
+	if(sendto(sockfd, packet, IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH, 0, 
+				(struct sockaddr*)&nonVictimAddress, sizeof(nonVictimAddress)) < 0){
+		printf("Packet sent to non-victim with ip address [%s]\n", nonVictimIPChar);
+	}
+
+
+
+	//exit
 	if(setsockopt(aitfListeningSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval)){
 		printf("unable to let other processes to use the same socket for listening AITF messages: %s\n", strerror(errno));
 	}
@@ -39,7 +62,10 @@ void sigterm(int signum){
 
 	}
 
+	printf("Number sent in total [%d]\n", count);
+
 	printf("Exiting...\n");
+
 	exit(1); 
 
 }
@@ -150,7 +176,7 @@ int main(int argc, char** argv){
 	udphdr.check = udpChecksum();//checksum for udp TODO
 
 	//prepare packet 
-	char *packet = (char*)malloc(sizeof(struct ip) + sizeof(struct udphdr));
+	packet = (char*)malloc(sizeof(struct ip) + sizeof(struct udphdr));
 	memcpy(packet, &iphdr, IPV4_HEADER_LENGTH * sizeof(uint8_t));
 	memcpy(packet + IPV4_HEADER_LENGTH, &udphdr, UDP_HEADER_LENGTH * sizeof(uint8_t));
 	//no data, thus do not call memcpy for the third time
@@ -168,8 +194,7 @@ int main(int argc, char** argv){
 
 	AITFMessageListEntry* receivedEntry = NULL;
 
-	int count = 0;
-
+	count = 0;
 	while(1){
 		//either the attacker is in disobedient mode, or there is no complaint received
 		if(inDisobedientMode == TRUE || (receivedEntry = receiveAITFMessage()) == NULL){
@@ -196,9 +221,33 @@ int main(int argc, char** argv){
 		} else {
 			printf("Error receiving AITF message: message type %d\n", (receivedEntry->flow)->messageType);
 		}
+
+
 	}
 
+	waitMilliseconds(100);
+
+
+	struct sockaddr_in nonVictimAddress;
+	char* nonVictimIPChar = NON_VICTIM_IP;
+	bzero(&nonVictimAddress, sizeof(nonVictimAddress));
+	nonVictimAddress.sin_family = AF_INET;
+	nonVictimAddress.sin_port = htons(UDP_PORT);
+	if(inet_pton(AF_INET, nonVictimIPChar, &(nonVictimAddress.sin_addr)) != 1){
+		reportError("inet_pton failed");
+	}
+
+	if(sendto(sockfd, packet, IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH, 0, 
+				(struct sockaddr*)&nonVictimAddress, sizeof(nonVictimAddress)) < 0){
+		printf("Packet sent to non-victim with ip address [%s]\n", nonVictimIPChar);
+	}
+
+
+
+
 	killThread(listeningThread);
+
+	printf("Number sent in total [%d]\n", count);
 	
 	return 0;
 }

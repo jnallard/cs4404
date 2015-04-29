@@ -7,6 +7,8 @@ c=$1' cs4404@10.4.12.3:~/shared'
 d=$1' cs4404@10.4.12.4:~/shared'
 e=$1' cs4404@10.4.12.5:~/shared'
 f=$1' cs4404@10.4.12.6:~/shared'
+g=$1' cs4404@10.4.12.7:~/shared'
+
 echo 'Pushing onto shared...'
 sshpass -p 'cs4404' scp -q -r $a
 sshpass -p 'cs4404' ssh cs4404@10.4.12.1 -t "cd ~/shared;make"
@@ -25,4 +27,8 @@ sshpass -p 'cs4404' ssh cs4404@10.4.12.5 -t "cd ~/shared;make"
 
 sshpass -p 'cs4404' scp -q -r $f
 sshpass -p 'cs4404' ssh cs4404@10.4.12.6 -t "cd ~/shared;make"
+
+sshpass -p 'cs4404' scp -q -r $g
+sshpass -p 'cs4404' ssh cs4404@10.4.12.7 -t "cd ~/shared;make"
+
 echo "Done"
