@@ -109,7 +109,7 @@ void handleAITFHandshake(AITFMessageListEntry *entry){
 	//send AITF message to attacker
 	RouteRecord* RRToAttacker = createRouteRecord(getInAddr(ownIPAddress), randomValue);
 	Flow* flowToAttacker = createFlowStruct(flow->victimIP, flow->attackerIP, RRToAttacker, nonce, 0, AITF_BLOCKING_REQUEST);
-	int socketfd = sendFlow(convertIPAddress(flow->attackerIP), TCP_SENDING_PORT, flowToAttacker);
+	int socketfd = sendFlow(convertIPAddress(flow->attackerIP), TCP_RECEIVING_PORT, flowToAttacker);
 	close(socketfd);
 
 	//Wait T-temp here
