@@ -68,7 +68,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 			memcpy(packet_data_2, packet_data + 20, count - 20);
 			memcpy(packet_data + 20, rr_buf, MAX_RR_HEADER_SIZE);
 			memcpy(packet_data + 20 + MAX_RR_HEADER_SIZE, packet_data_2, count - 20);
-			packet_data[9] = (char) ROUTE_RECORD_PROTOCOL;
+			//packet_data[9] = (char) ROUTE_RECORD_PROTOCOL;
 			printf("Modifying Packet\n\n");
 		}
 		else{
