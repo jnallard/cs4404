@@ -25,6 +25,22 @@ pthread_mutex_t rrFilteringLock;
 struct in_addr* gatewayAddr;
 long randomValue = 0;
 
+	//code learned from udp4.c in http://www.pdbuchan.com/rawsock/rawsock.html
+unsigned short csum(unsigned short *buf, int nwords)
+{      
+    unsigned long sum;
+    for(sum=0; nwords>0; nwords--)
+
+            sum += *buf++;
+
+    sum = (sum >> 16) + (sum &0xffff);
+
+    sum += (sum >> 16);
+
+    return (unsigned short)(~sum);
+
+}
+
 
 static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	struct nfq_data *nfa, void *data)
@@ -68,7 +84,20 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 			memcpy(packet_data_2, packet_data + 20, count - 20);
 			memcpy(packet_data + 20, rr_buf, MAX_RR_HEADER_SIZE);
 			memcpy(packet_data + 20 + MAX_RR_HEADER_SIZE, packet_data_2, count - 20);
-			//packet_data[9] = (char) ROUTE_RECORD_PROTOCOL;
+			packet_data[9] = (char) ROUTE_RECORD_PROTOCOL;
+			
+			//getting new length
+			short length = (short)MAX_RR_HEADER_SIZE;
+			short* oldLength = (short*)(packet_data + 2);
+			short newLength = length + ntohs(*oldLength);
+			*oldLength = htons(newLength);
+
+			//checksum
+			memset(packet_data + 10, 0, 2);
+			unsigned short updatedChecksum = csum((unsigned short*)packet_data ,10);
+			memcpy(packet_data + 10, &updatedChecksum, 2);
+
+
 			printf("Modifying Packet\n\n");
 		}
 		else{
