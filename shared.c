@@ -103,13 +103,19 @@ int sendFlow(char* destIP, int port, Flow* flow){
 
 	if(getaddrinfo(destIP, portStr, &hints, &res) != 0){ 
 		printf("Error in getaddrinfo() when sending complaint\n");
+		return -1;
 	}
 
 	sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	if(sockfd < 0) printf("Error in socket() when sending complaint\n");
+	if(sockfd < 0) {
+		printf("Error in socket() when sending complaint\n");
+		return -1;
+	}
 
 	if(connect(sockfd, res->ai_addr, res->ai_addrlen) != 0){
-		printf("Error in connect() when sending complaint\n");
+		printf("Error in connect() when sending complaint. Error: [%s]\n", strerror(errno));
+
+		return -1;
 	}
 
 	sendFlowWithOpenConnection(sockfd, flow);
@@ -126,8 +132,6 @@ int sendFlowWithOpenConnection(int connectionFd, Flow* flow){
 		printf("Error occurred when sending request\n");
 	} else {
 		printf("Request sent\n");
-		printf("length %d\n", returnval);
-		printf("packet %s\n", flowString);
 	}
 
 	return returnval;
@@ -322,8 +326,11 @@ void reportError(char* errorMessage){
 
 pthread_t createAITFListeningThread(int port){
 	pthread_t thread;
-	int listeningPortNumber = port;
-	if(pthread_create(&thread, NULL, listenToAITFMessage, &listeningPortNumber) != 0){
+	//int listeningPortNumber = port;
+	int* listeningPortNumber = calloc(1, sizeof(int));
+	*(listeningPortNumber) = port;
+	printf("Port Before: [%d]\n", port);
+	if(pthread_create(&thread, NULL, listenToAITFMessage, listeningPortNumber) != 0){
 		reportError("Error creating thread\n");
 	}
 	return thread;
@@ -339,9 +346,11 @@ void killThread(pthread_t thread){
 //Function ran by newly created thread to listen to incoming complaints
 void* listenToAITFMessage(void *portNum){
 	initializeAITFMessageList();
-	int port = *(int*)portNum;
+	int* portPtr = (int*) portNum;
+	int port = *portPtr;
+	printf("Port: [%d]\n", port);
 
-	aitfListeningSocket = socket(AF_INET, SOCK_STREAM, 0);
+	aitfListeningSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(aitfListeningSocket < 0){
 		printf("Error in socket() when listening to AITF message.\n");
 	}
