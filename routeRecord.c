@@ -267,6 +267,9 @@ int checkForFilteredFlows(struct in_addr* source, struct in_addr* dest){
 			if(hasTimeElapsed(tmp->timeStart, tmp->delayedCountTime) == TRUE){
 				tmp->count = tmp->count + 1;
 			}
+			printf("Block flow is detected with the source IP[%s], dest IP[%s] with [%d] violations.\n", 
+				convertIPAddress(source), convertIPAddress(dest), tmp->count);
+
 			return TRUE;
 		}
 	}
