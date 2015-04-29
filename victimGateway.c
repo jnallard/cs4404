@@ -45,16 +45,20 @@ int main(int argc, char* argv[]){
 	aitfListeningThread = createAITFListeningThread(TCP_RECEIVING_PORT);
 
 	while(running == TRUE){
+
 		if(hasTimeElapsed(&startTime, T_TABLE_CHECK) == TRUE){
 			gettimeofday(&startTime, NULL);
 			updateShadowFilteringTable();
+
 		}
 		AITFMessageListEntry* entry = receiveAITFMessage(); 
-		Flow* flow = entry->flow;
-		if(flow != NULL){
+
+		if(entry != NULL){
+			Flow* flow = entry->flow;
 			startHandleFlowThread(flow);
 		}
 		waitMilliseconds(100);
+
 	}
 
 	killThread(aitfListeningThread);
