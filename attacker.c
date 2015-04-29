@@ -36,9 +36,14 @@ void sigterm(int signum){
 	if(inet_pton(AF_INET, nonVictimIPChar, &(nonVictimAddress.sin_addr)) != 1){
 		reportError("inet_pton failed");
 	}
+	
 	if(sendto(sockfd, packet, IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH, 0, 
 				(struct sockaddr*)&nonVictimAddress, sizeof(nonVictimAddress)) < 0){
+		printf("error sending packet to non-victim.\n");
+
+	} else {
 		printf("Packet sent to non-victim with ip address [%s]\n", nonVictimIPChar);
+
 	}
 
 
@@ -239,7 +244,11 @@ int main(int argc, char** argv){
 
 	if(sendto(sockfd, packet, IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH, 0, 
 				(struct sockaddr*)&nonVictimAddress, sizeof(nonVictimAddress)) < 0){
+		printf("error sending packet to non-victim.\n");
+
+	} else {
 		printf("Packet sent to non-victim with ip address [%s]\n", nonVictimIPChar);
+
 	}
 
 
