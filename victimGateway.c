@@ -116,7 +116,7 @@ void requestFlowBlocked(Flow* flow){
 	if(responseFlow->messageType != AITF_REQUEST_REPLY || flow->nonce2 != responseFlow->nonce2){
 		waitMilliseconds(T_LONG);
 		//manageFlow(flow->attackerIP, flow->victimIP, FALSE);
-		removeBlockedFlowAndCountViolations(flow->attackerIP, flow->attackerIP);
+		removeBlockedFlowAndCountViolations(flow->attackerIP, flow->victimIP);
 		return;
 	}
 
@@ -131,7 +131,7 @@ void requestFlowBlocked(Flow* flow){
 		waitMilliseconds(T_TEMP / 10);
 	}
 	//manageFlow(flow->attackerIP, flow->victimIP, FALSE);
-	removeBlockedFlowAndCountViolations(flow->attackerIP, flow->attackerIP);
+	removeBlockedFlowAndCountViolations(flow->attackerIP, flow->victimIP);
 		
 
 }
