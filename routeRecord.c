@@ -48,16 +48,16 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	struct nfqnl_msg_packet_hdr* ph = nfq_get_msg_packet_hdr(nfa);
 	if (ph) {
 		id = ntohl(ph->packet_id);
-		printf("hw_protocol=0x%04x hook=%u id=%u ",
-		ntohs(ph->hw_protocol), ph->hook, id);
+		// printf("hw_protocol=0x%04x hook=%u id=%u ",
+		//ntohs(ph->hw_protocol), ph->hook, id);
 
 		char* packet_data = (char*) calloc(1, 10000);
 		char* packet_data_2 = (char*) calloc(1, 10000);
 		int count = nfq_get_payload(nfa, (unsigned char**)&packet_data);
-		printf("count: [%d], ", count);
+		// printf("count: [%d], ", count);
 
 		unsigned char protocol = (unsigned char) packet_data[9];
-		printf("protocol: [%d]", (unsigned int) protocol);
+		// printf("protocol: [%d]", (unsigned int) protocol);
 
 		//Get the source and destination IPs
 		char srcIP[33];
@@ -97,7 +97,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 			memcpy(packet_data + 10, &updatedChecksum, 2);
 
 
-			printf("Modifying Packet\n\n");
+			// printf("Modifying Packet\n\n");
 		}
 		else{
 			// CHange the route record to add new gateway information
@@ -112,7 +112,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		return nfq_set_verdict(qh, id, NF_ACCEPT, count + MAX_RR_HEADER_SIZE, (unsigned char*) packet_data);
 	}
 
-	printf("entering callback\n\n");
+	// printf("entering callback\n\n");
 	return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
 }
 
@@ -159,7 +159,7 @@ void* routeRecordMain(void* arg){
 	int rv = -1;
 	char* buf = (char*) calloc(1, 100001);
 	while ((rv = recv(fd, buf, 10000, 0)) >= 0) {
-		printf("pkt received\n received: [%d]\n\n", rv);
+		// printf("pkt received\n received: [%d]\n\n", rv);
 		nfq_handle_packet(h, buf, rv);
 	}
 
@@ -214,6 +214,9 @@ void addBlockedFlow(struct in_addr* source, struct in_addr* dest, int delayedCou
 	}
 
 	pthread_mutex_unlock(&(rrFilteringLock));
+
+	printf("Flow is blocked with the source IP[%s], dest IP[%s] for [%d] milliseconds.\n", 
+		convertIPAddress(source), convertIPAddress(dest), delayedCountTime);
 }
 
 
@@ -246,6 +249,10 @@ int removeBlockedFlowAndCountViolations(struct in_addr* source, struct in_addr* 
 	}
 
 	pthread_mutex_unlock(&(rrFilteringLock));
+
+	printf("Block is removed with the source IP[%s], dest IP[%s] with [%d] violations.\n", 
+		convertIPAddress(source), convertIPAddress(dest), count);
+
 	return count;
 }
 

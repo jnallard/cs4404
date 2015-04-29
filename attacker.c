@@ -168,6 +168,8 @@ int main(int argc, char** argv){
 
 	AITFMessageListEntry* receivedEntry = NULL;
 
+	int count = 0;
+
 	while(1){
 		//either the attacker is in disobedient mode, or there is no complaint received
 		if(inDisobedientMode == TRUE || (receivedEntry = receiveAITFMessage()) == NULL){
@@ -175,7 +177,14 @@ int main(int argc, char** argv){
 						(struct sockaddr*)&victimAddress, sizeof(victimAddress)) < 0){
 				printf("Unable to send packet.\n");
 			} else {
-				printf("Packet sent.\n");
+				count++;
+				if(count == 1){
+					printf("First packet sent.\n");
+				}
+				else if(count % 10 == 0){
+					printf("10 packets sent.\n");
+
+				}
 			}
 			//wait for T-send before resend the packet
 			waitMilliseconds(T_SEND);

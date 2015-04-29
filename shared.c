@@ -152,11 +152,11 @@ Flow* receiveFlowWithOpenConnection(int connectionFd){
 
  	buf[count] = '\0';
  	printf("count number %d\n", count);
- 	printf("packet received. %s\n", buf);
+ 	printf("packet received.\n");
 
  	//handle AITF message
 	Flow *receivedFlow = readAITFMessage(buf);
-	printf("flow info - nonce 1, nonce 2, message type, string length: %d, %d,%d\n", 
+	printf("flow info - nonce 1 [%d], nonce 2 [%d], message type [%d]\n", 
 		receivedFlow->nonce1, receivedFlow->nonce2, receivedFlow->messageType);
 	return receivedFlow;
 }
