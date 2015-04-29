@@ -37,6 +37,7 @@
 
 #define FLOW_SENDING_PORT "4405"
 #define INTERFACE "eth0"
+#define ROUTE_RECORD_PROTOCOL 200
 
 #define VICTIM_IP "10.4.12.6"
 #define VICTIM_GATEWAY_IP "10.4.12.5"

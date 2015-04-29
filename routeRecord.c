@@ -2,7 +2,6 @@
 //jnallard, yyan
 #include "shared.h"
 
-#define ROUTE_RECORD_PROTOCOL 200
 
 //sudo apt-get install libnetfilter-queue-dev
 
@@ -57,8 +56,8 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		int count = nfq_get_payload(nfa, (unsigned char**)&packet_data);
 		printf("count: [%d], ", count);
 
-		int protocol = (int) packet_data[9];
-		printf("protocol: [%d]", protocol);
+		unsigned char protocol = (unsigned char) packet_data[9];
+		printf("protocol: [%d]", (unsigned int) protocol);
 
 		//Get the source and destination IPs
 		char srcIP[33];

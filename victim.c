@@ -57,8 +57,10 @@ int main(int argc, char* argv[]){
 		inet_ntop(AF_INET, buffer+16, destIP, INET_ADDRSTRLEN);
 		destIP[32] = '\0';
 
-		int protocol = (int) buffer[9];
-		if(protocol == 17 && strcmp(hostIP, destIP) == 0){
+		unsigned char protChar = (unsigned char) buffer[9];
+		unsigned int protocol = (unsigned int) protChar;
+		//printf("prot [%d]\n", protocol);
+		if(protocol == ROUTE_RECORD_PROTOCOL && strcmp(hostIP, destIP) == 0){
 			AttackList** entry = (AttackList**) calloc(sizeof(AttackList*), 1);
 			attackList = updateAttackCount(attackList, srcIP, entry);
 			
