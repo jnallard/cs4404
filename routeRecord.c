@@ -103,7 +103,8 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		else{
 			// CHange the route record to add new gateway information
 			RouteRecord* rr = readRouteRecord(packet_data + 20);
-			addGatewayInfo(rr, gatewayAddr, -1l);
+			addGatewayInfo(rr, gatewayAddr, randomValue);
+
 
 			char* rr_buf = writeRouteRecordAsNetworkBuffer(rr);
 			memcpy(packet_data + 20, rr_buf, MAX_RR_HEADER_SIZE);
