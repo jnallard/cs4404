@@ -57,8 +57,12 @@ void addGatewayInfo(RouteRecord* routeRecord, struct in_addr* ipAddress, long ra
 		slotPointer = &(routeRecord->slot4);
 	}
 
-	if(index < 2 || index > 4 || slotPointer == NULL || *slotPointer != NULL){
-		printf("Error with routeRecord\n");
+	if(index < 2 || index > 4){
+		printf("Error with routeRecord, index number is %d\n", index);
+		exit(1);
+	}
+	if(slotPointer == NULL){
+		printf("Error with routeRecord, slot pointer is null.\n");
 		exit(1);
 	}
 
