@@ -61,7 +61,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		}
 
 		//Means the route record shim is not already there, so add it.
-		if(protocol != ROUTE_RECORD_PROTOCOL){
+		if(protocol == 17){
 			RouteRecord* rr = createRouteRecord(gatewayAddr, randomValue);
 			char* rr_buf = writeRouteRecordAsNetworkBuffer(rr);
 
