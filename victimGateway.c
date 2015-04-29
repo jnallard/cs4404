@@ -131,6 +131,7 @@ void requestFlowBlocked(Flow* flow){
 		waitMilliseconds(T_TEMP / 10);
 	}
 	//manageFlow(flow->attackerIP, flow->victimIP, FALSE);
+	printf("About to remove flow\n");
 	removeBlockedFlowAndCountViolations(flow->attackerIP, flow->victimIP);
 		
 

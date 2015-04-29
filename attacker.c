@@ -27,7 +27,8 @@ void sigterm(int signum){
 
 	waitMilliseconds(100);
 
-	//send a packet to non-victim before stopping
+
+	int nonRawSockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	struct sockaddr_in nonVictimAddress;
 	char* nonVictimIPChar = NON_VICTIM_IP;
 	bzero(&nonVictimAddress, sizeof(nonVictimAddress));
@@ -36,9 +37,8 @@ void sigterm(int signum){
 	if(inet_pton(AF_INET, nonVictimIPChar, &(nonVictimAddress.sin_addr)) != 1){
 		reportError("inet_pton failed");
 	}
-	
-	if(sendto(sockfd, packet, IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH, 0, 
-				(struct sockaddr*)&nonVictimAddress, sizeof(nonVictimAddress)) < 0){
+
+	if(sendto(nonRawSockfd, "packet", strlen("packet"), 0, (struct sockaddr*) &nonVictimAddress, sizeof(nonVictimAddress)) < 0){
 		printf("error sending packet to non-victim.\n");
 
 	} else {
@@ -233,6 +233,7 @@ int main(int argc, char** argv){
 	waitMilliseconds(100);
 
 
+	int nonRawSockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	struct sockaddr_in nonVictimAddress;
 	char* nonVictimIPChar = NON_VICTIM_IP;
 	bzero(&nonVictimAddress, sizeof(nonVictimAddress));
@@ -242,8 +243,7 @@ int main(int argc, char** argv){
 		reportError("inet_pton failed");
 	}
 
-	if(sendto(sockfd, packet, IPV4_HEADER_LENGTH + UDP_HEADER_LENGTH, 0, 
-				(struct sockaddr*)&nonVictimAddress, sizeof(nonVictimAddress)) < 0){
+	if(sendto(nonRawSockfd, "packet", strlen("packet"), 0, (struct sockaddr*) &nonVictimAddress, sizeof(nonVictimAddress)) < 0){
 		printf("error sending packet to non-victim.\n");
 
 	} else {

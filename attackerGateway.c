@@ -38,7 +38,7 @@ void* disconnectAttacker(struct in_addr* attackerIP, struct in_addr* victimIP){
 
 	waitMilliseconds(T_LONG);
 	//manageFlow(attackerIP, victimIP, FALSE);
-	removeBlockedFlowAndCountViolations(attackerIP, attackerIP);
+	removeBlockedFlowAndCountViolations(attackerIP, victimIP);
 
 	pthread_exit(NULL);
 }
@@ -118,7 +118,9 @@ void handleAITFHandshake(AITFMessageListEntry *entry){
 	//TODO check to see if the flow continues and disconnect A??
 	//remove temporary filter after t-temp and add to shadow filtering table
 	//manageFlow(ackFlow->attackerIP, ackFlow->victimIP, FALSE);
-	int messageCountViolations = removeBlockedFlowAndCountViolations(ackFlow->attackerIP, ackFlow->attackerIP);
+
+	printf("About to remove filter. \n");
+	int messageCountViolations = removeBlockedFlowAndCountViolations(ackFlow->attackerIP, ackFlow->victimIP);
 	printf("Temporary filter removed. \n");
 
 

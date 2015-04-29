@@ -616,6 +616,11 @@ void updateShadowFilteringTable(){
 
 //This function compares two ip addresses to see if they are the same, and return 0 if they are.
 int compareIPAddresses(struct in_addr* ip1, struct in_addr* ip2){
+	if(ip1 == NULL || ip2 == NULL)
+	{
+		return ip1 == NULL && ip2 == NULL;
+	}
+
 	char ipStr1[INET_ADDRSTRLEN], ipStr2[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, ip1, ipStr1, INET_ADDRSTRLEN);
 	inet_ntop(AF_INET, ip2, ipStr2, INET_ADDRSTRLEN);

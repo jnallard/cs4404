@@ -57,7 +57,6 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		// printf("count: [%d], ", count);
 
 		unsigned char protocol = (unsigned char) packet_data[9];
-		// printf("protocol: [%d]", (unsigned int) protocol);
 
 		//Get the source and destination IPs
 		char srcIP[33];
@@ -69,6 +68,9 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 
 		struct in_addr* destAddr = getInAddr(destIP);
 		struct in_addr* sourceAddr = getInAddr(srcIP);
+
+
+		printf("protocol: [%d], source [%s], dest[%s]\n", (unsigned int) protocol, srcIP, destIP);
 
 		//If we're blocking the flow, drop the packet.
 		if(checkForFilteredFlows(sourceAddr, destAddr) == TRUE){
@@ -224,10 +226,16 @@ int removeBlockedFlowAndCountViolations(struct in_addr* source, struct in_addr* 
 	int count = 0;
 	pthread_mutex_lock(&(rrFilteringLock));
 
+	printf("Grabbed mutex. \n");
+
 	if(rrFilterEntryHead != NULL){
+
+
+		printf("About to release mutex. \n");
 		RRFilterEntry *tmp = rrFilterEntryHead;
 		RRFilterEntry *previous = NULL;
 		while((compareIPAddresses(source, tmp->source) != TRUE || compareIPAddresses(dest, tmp->dest) != TRUE) && tmp->next != NULL){
+
 				previous = tmp;
 				tmp = tmp->next;
 		}
@@ -241,13 +249,15 @@ int removeBlockedFlowAndCountViolations(struct in_addr* source, struct in_addr* 
 				rrFilterEntryHead = tmp->next;
 			}
 
-			free(tmp->source);
-			free(tmp->dest);
+			//free(tmp->source);
+			//free(tmp->dest);
 			free(tmp->timeStart);
 			free(tmp);
 		}
 	}
 
+
+	printf("About to release mutex. \n");
 	pthread_mutex_unlock(&(rrFilteringLock));
 
 	printf("Block is removed with the source IP[%s], dest IP[%s] with [%d] violations.\n", 
@@ -270,6 +280,7 @@ int checkForFilteredFlows(struct in_addr* source, struct in_addr* dest){
 			printf("Block flow is detected with the source IP[%s], dest IP[%s] with [%d] violations.\n", 
 				convertIPAddress(source), convertIPAddress(dest), tmp->count);
 
+			pthread_mutex_unlock(&(rrFilteringLock));
 			return TRUE;
 		}
 	}
