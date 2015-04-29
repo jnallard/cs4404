@@ -94,7 +94,7 @@ int main(int argc, char* argv[]){
 			printf("Time elapsed since first packet received: %ld\n", currentTimeInMill - startTimeInMill);
 
 
-			if((*entry)->count > ATTACK_COUNT_THRESHOLD){
+			if((*entry)->count >= ATTACK_COUNT_THRESHOLD){
 				printf("Attack Threshold Met for [%s] - Reporting and resetting!\n\n", srcIP);
 
 				//Complain to Victim Gateway Here

@@ -283,6 +283,8 @@ int checkForFilteredFlows(struct in_addr* source, struct in_addr* dest){
 			pthread_mutex_unlock(&(rrFilteringLock));
 			return TRUE;
 		}
+
+		tmp = tmp->next;
 	}
 	
 	pthread_mutex_unlock(&(rrFilteringLock));
