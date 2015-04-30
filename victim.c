@@ -9,8 +9,14 @@
 int main(int argc, char* argv[]){
 
 	char* spoofingIP = NULL;
+	int guessRandomValue = FALSE;
 	if(argc > 1){
-		spoofingIP = argv[1];
+		if(strcmp(argv[1], "-rr") == 0){
+			guessRandomValue = TRUE;
+		}
+		else{
+			spoofingIP = argv[1];
+		}
 	}
 	char* hostIP = getIPAddress(INTERFACE);
 
@@ -100,6 +106,9 @@ int main(int argc, char* argv[]){
 				//Create Flow struct based on received Route Record first
 				//TODO below: temporary implementation
 				RouteRecord* tempRR = readRouteRecord(buffer + 20);
+				if(guessRandomValue == TRUE){
+					tempRR->slot4->randomValue = createLongRandomValue();
+				}
 
 				struct in_addr* victimAddr = getInAddr(destIP);
 				if(spoofingIP != NULL){

@@ -380,7 +380,7 @@ void* listenToAITFMessage(void *portNum){
 	 	if(clientfd == -1) {
 	 		printf("Error in accept() when listening to AITF message. \n");
 	 	}
-
+	 	
 		Flow* receivedFlow = receiveFlowWithOpenConnection(clientfd);
 
 		if(compareIPAddresses(&client_addr, receivedFlow->victimIP) == 0){
