@@ -70,7 +70,7 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		struct in_addr* sourceAddr = getInAddr(srcIP);
 
 
-		printf("protocol: [%d], source [%s], dest[%s]\n", (unsigned int) protocol, srcIP, destIP);
+		//printf("protocol: [%d], source [%s], dest[%s]\n", (unsigned int) protocol, srcIP, destIP);
 
 		//If we're blocking the flow, drop the packet.
 		if(checkForFilteredFlows(sourceAddr, destAddr) == TRUE){

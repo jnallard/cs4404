@@ -1,0 +1,1 @@
+sshpass -p 'cs4404' ssh cs4404@10.4.12.2 -t "sh ~/shared/routeRecord.sh; sudo ~/shared/attackerGateway FALSE"
