@@ -76,7 +76,16 @@ pthread_t startHandleFlowThread(Flow* flow){
 }
 
 void* handleFlow(void* flowPtr){
+
 	Flow* flow = (Flow*) flowPtr;
+
+	long randomValue = returnRandomValue();
+	char* ownIPAddress = getIPAddress(INTERFACE);
+
+	if(checkForCorrectRandomValue(ownIPAddress, randomValue, flow) == TRUE){
+		printf("The random value does not match for this gateway.\n")
+		pthread_exit(NULL);
+	}
 
 	//Gets the number of times we've seen the flow.
 	int count = isInShadowFilteringTable(flow);
