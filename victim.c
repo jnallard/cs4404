@@ -1,9 +1,19 @@
 //Victim software - used for detecting attack flows and complaining to the Victim Gateway
 //jnallard, yyan
-#include "victim.h"
 #include "shared.h"
 
+#define ATTACK_COUNT_THRESHOLD 20
 
+//This struct is used for determing how many times a source has tried to send messages to the victim
+typedef struct AttackList {
+	char* srcIP;
+	int count;
+	struct AttackList* next;
+} AttackList;
+
+AttackList* updateAttackCount(AttackList* attackList, char* attackerSrcIP, AttackList** entry);
+
+void sendComplaint();
 
 
 int main(int argc, char* argv[]){

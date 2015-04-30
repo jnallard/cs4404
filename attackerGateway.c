@@ -1,5 +1,4 @@
 #include "shared.h"
-#include "attackerGateway.h"
 
 
 extern int aitfListeningSocket;

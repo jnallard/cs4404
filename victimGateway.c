@@ -1,5 +1,9 @@
 #include "shared.h"
-#include "victimGateway.h"
+
+pthread_t startHandleFlowThread(Flow* flow);
+void* handleFlow(void* flowPtr);
+void requestFlowBlocked(Flow* flow);
+void escalateFlow(Flow* flow);
 
 extern int aitfListeningSocket;
 pthread_t aitfListeningThread;
