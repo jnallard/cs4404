@@ -151,7 +151,7 @@ int main(int argc, char* argv[]){
 				struct in_addr* attackerAddr = getInAddr(srcIP);
 
 				//Construct the flow struct and send to the victim gateway
-				Flow* flow = createFlowStruct(victimAddr, attackerAddr, tempRR, createNonce(victimAddr, attackerAddr), 0, AITF_BLOCKING_REQUEST);
+				Flow* flow = createFlowStruct(victimAddr, attackerAddr, tempRR, createNonce(victimAddr, attackerAddr), 0, AITF_BLOCKING_REQUEST_VICTIM);
 
 				if(flow != NULL){
 					sendFlow(VICTIM_GATEWAY_IP, TCP_RECEIVING_PORT, flow);
