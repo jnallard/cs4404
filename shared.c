@@ -374,7 +374,7 @@ void* listenToAITFMessage(void *portNum){
 		printf("enter loop for receiving packet\n");
 
 		int clientfd;
-		struct sockaddr_storage client_addr;
+		struct in_addr client_addr;
 		int addrlen = sizeof(client_addr);
 		clientfd = accept(aitfListeningSocket, (struct sockaddr*)&client_addr, (socklen_t * __restrict__)&addrlen);
 	 	if(clientfd == -1) {
@@ -383,7 +383,13 @@ void* listenToAITFMessage(void *portNum){
 
 		Flow* receivedFlow = receiveFlowWithOpenConnection(clientfd);
 
-	 	updateAITFMessageList(receivedFlow, clientfd);
+		if(compareIPAddresses(&client_addr, receivedFlow->victimIP) == 0){
+			updateAITFMessageList(receivedFlow, clientfd);
+
+		} else {
+			printf("Spoofed IP address in flow record. \n");
+			
+		}
 
 	}
 
