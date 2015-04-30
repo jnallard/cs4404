@@ -1,14 +1,16 @@
-//Route Record
+//Route Record - used for adding/modifying the shim layer and block/unblock the flow
 //jnallard, yyan
 #include "shared.h"
 
-
+//Prior to run the program, the following command should be run to install the needed package 
 //sudo apt-get install libnetfilter-queue-dev
 
 //Code started from examples here:
 //http://www.netfilter.org/projects/libnetfilter_queue/doxygen/group__LibrarySetup.html
 //http://www.netfilter.org/projects/libnetfilter_queue/doxygen/group__Queue.html
 
+
+//This struct is used for storing information regarding the flow that should be blocked
 typedef struct RRFilterEntry {
 	struct in_addr* source;
 	struct in_addr* dest;
@@ -24,38 +26,38 @@ pthread_mutex_t rrFilteringLock;
 struct in_addr* gatewayAddr;
 long randomValue = 0;
 
-	//code learned from udp4.c in http://www.pdbuchan.com/rawsock/rawsock.html
+//This function computes and returns the checksum value for IP header
+//code learned from udp4.c in http://www.pdbuchan.com/rawsock/rawsock.html
 unsigned short csum(unsigned short *buf, int nwords)
 {      
     unsigned long sum;
     for(sum=0; nwords>0; nwords--)
-
             sum += *buf++;
 
     sum = (sum >> 16) + (sum &0xffff);
-
     sum += (sum >> 16);
 
     return (unsigned short)(~sum);
-
 }
 
 
+//This function is the callback function from the nfq_create_queue() function,
+//and it will modify the packet in the queue
 static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 	struct nfq_data *nfa, void *data)
 {
 	u_int32_t id = -1;
+
+	//Get the packet header of the received packet
 	struct nfqnl_msg_packet_hdr* ph = nfq_get_msg_packet_hdr(nfa);
 	if (ph) {
 		id = ntohl(ph->packet_id);
-		// printf("hw_protocol=0x%04x hook=%u id=%u ",
-		//ntohs(ph->hw_protocol), ph->hook, id);
-
+		//Set the buffers for storing the original data
 		char* packet_data = (char*) calloc(1, 10000);
 		char* packet_data_2 = (char*) calloc(1, 10000);
 		int count = nfq_get_payload(nfa, (unsigned char**)&packet_data);
-		// printf("count: [%d], ", count);
 
+		//Get protocol number of the original packet
 		unsigned char protocol = (unsigned char) packet_data[9];
 
 		//Get the source and destination IPs
@@ -69,9 +71,6 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		struct in_addr* destAddr = getInAddr(destIP);
 		struct in_addr* sourceAddr = getInAddr(srcIP);
 
-
-		//printf("protocol: [%d], source [%s], dest[%s]\n", (unsigned int) protocol, srcIP, destIP);
-
 		//If we're blocking the flow, drop the packet.
 		if(checkForFilteredFlows(sourceAddr, destAddr) == TRUE){
 			return nfq_set_verdict(qh, id, NF_DROP, 0, NULL);
@@ -79,9 +78,11 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 
 		//Means the route record shim is not already there, so add it.
 		if(protocol == 17){
+			//Create the new Route Record shim and write it to newtwork buffer
 			RouteRecord* rr = createRouteRecord(gatewayAddr, randomValue);
 			char* rr_buf = writeRouteRecordAsNetworkBuffer(rr);
 
+			//Add the shim layer data to the original packet through copying
 			memcpy(packet_data_2, packet_data + 20, count - 20);
 			memcpy(packet_data + 20, rr_buf, MAX_RR_HEADER_SIZE);
 			memcpy(packet_data + 20 + MAX_RR_HEADER_SIZE, packet_data_2, count - 20);
@@ -98,15 +99,13 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 			unsigned short updatedChecksum = csum((unsigned short*)packet_data ,10);
 			memcpy(packet_data + 10, &updatedChecksum, 2);
 
-
-			// printf("Modifying Packet\n\n");
 		}
 		else{
 			// CHange the route record to add new gateway information
 			RouteRecord* rr = readRouteRecord(packet_data + 20);
 			addGatewayInfo(rr, gatewayAddr, randomValue);
 
-
+			//Convert the router record back to network data and add it to the old position
 			char* rr_buf = writeRouteRecordAsNetworkBuffer(rr);
 			memcpy(packet_data + 20, rr_buf, MAX_RR_HEADER_SIZE);
 		}
@@ -114,12 +113,12 @@ static int cb(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 		return nfq_set_verdict(qh, id, NF_ACCEPT, count + MAX_RR_HEADER_SIZE, (unsigned char*) packet_data);
 	}
 
-	// printf("entering callback\n\n");
 	return nfq_set_verdict(qh, id, NF_ACCEPT, 0, NULL);
 }
 
+//Main function to run the route record program by calling various netfilter-queue functions 
 void* routeRecordMain(void* arg){
-
+	//Get the IP Address of the host and create random value associated with it
 	randomValue = createLongRandomValue();
 	char* gatewayIP = getIPAddress(INTERFACE);
 	gatewayAddr = getInAddr(gatewayIP);
@@ -144,7 +143,6 @@ void* routeRecordMain(void* arg){
 		exit(1);
 	}
 
-	//nfq_callback* cb = (nfq_callback*) calloc(1, sizeof(nfq_callback));
 	printf("binding this socket to queue '0'\n");
 	struct nfq_q_handle* qh = nfq_create_queue(h,  0, &cb, NULL);
 	if (!qh) {
@@ -161,7 +159,6 @@ void* routeRecordMain(void* arg){
 	int rv = -1;
 	char* buf = (char*) calloc(1, 100001);
 	while ((rv = recv(fd, buf, 10000, 0)) >= 0) {
-		// printf("pkt received\n received: [%d]\n\n", rv);
 		nfq_handle_packet(h, buf, rv);
 	}
 
@@ -174,6 +171,7 @@ void* routeRecordMain(void* arg){
 	pthread_exit(NULL);
 }
 
+//This function returns the random value associated with the host's IP address
 long returnRandomValue(){
 	return randomValue;
 }
@@ -190,9 +188,10 @@ void initializeRRFilterList(){
 //dest, can be null for any address, or set to the correct ip
 //adding, defines if you want to remove a firewall rule (FALSE), or add one (TRUE)
 void addBlockedFlow(struct in_addr* source, struct in_addr* dest, int delayedCountTime){
-
+	//Create the filter entry to store the source and dest information
 	RRFilterEntry *entry = (RRFilterEntry*) calloc(1, sizeof(RRFilterEntry));
 
+	//Record current time and store all information into the entry
 	struct timeval* currentTime = (struct timeval*)malloc(sizeof(struct timeval));
 	gettimeofday(currentTime, NULL);
 
@@ -203,6 +202,7 @@ void addBlockedFlow(struct in_addr* source, struct in_addr* dest, int delayedCou
 	entry->count = 0;
 	entry->delayedCountTime = delayedCountTime;
 
+	//Add this entry to the list
 	pthread_mutex_lock(&(rrFilteringLock));
 
 	if(rrFilterEntryHead == NULL){
@@ -221,7 +221,7 @@ void addBlockedFlow(struct in_addr* source, struct in_addr* dest, int delayedCou
 		convertIPAddress(source), convertIPAddress(dest), delayedCountTime);
 }
 
-
+//This function removes the filter and count the number of violations that the flow made
 int removeBlockedFlowAndCountViolations(struct in_addr* source, struct in_addr* dest){
 	int count = 0;
 	pthread_mutex_lock(&(rrFilteringLock));
@@ -230,16 +230,17 @@ int removeBlockedFlowAndCountViolations(struct in_addr* source, struct in_addr* 
 
 	if(rrFilterEntryHead != NULL){
 
-
-		printf("About to release mutex. \n");
 		RRFilterEntry *tmp = rrFilterEntryHead;
 		RRFilterEntry *previous = NULL;
+
+		//Goes to the next entry if the addresses don't match
 		while((compareIPAddresses(source, tmp->source) != TRUE || compareIPAddresses(dest, tmp->dest) != TRUE) && tmp->next != NULL){
 
 				previous = tmp;
 				tmp = tmp->next;
 		}
 		
+		//Remove the entry in the list if matched entry is found
 		if(compareIPAddresses(source, tmp->source) == TRUE && compareIPAddresses(dest, tmp->dest) == TRUE){
 			count = tmp->count;
 			if(previous != NULL){
@@ -249,8 +250,6 @@ int removeBlockedFlowAndCountViolations(struct in_addr* source, struct in_addr* 
 				rrFilterEntryHead = tmp->next;
 			}
 
-			//free(tmp->source);
-			//free(tmp->dest);
 			free(tmp->timeStart);
 			free(tmp);
 		}
@@ -266,10 +265,12 @@ int removeBlockedFlowAndCountViolations(struct in_addr* source, struct in_addr* 
 	return count;
 }
 
+//This function checks if a specific flow is blocked
 int checkForFilteredFlows(struct in_addr* source, struct in_addr* dest){
 
 	pthread_mutex_lock(&(rrFilteringLock));
 
+	//Goes through the list to check if the flow is in it
 	RRFilterEntry* tmp = rrFilterEntryHead;
 	while(tmp != NULL){
 		if((tmp->source == NULL || compareIPAddresses(source, tmp->source) == TRUE) 
