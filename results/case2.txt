@@ -18,19 +18,19 @@
 
 #3) 
 	success/fail 	- True
-	# sent			- 206
+	# sent			- 203
 	# received		- 20
 	% recevied		- 20/21
-	time elapsed 	- 1896 milliseconds
-	network test 	- True
+	time elapsed 	- 1903 milliseconds
+	network test 	- False
 
 #4) 
 	success/fail 	- True
-	# sent			- 21
+	# sent			- 204
 	# received		- 20
 	% recevied		- 20/21
-	time elapsed 	- 1894 milliseconds
-	network test 	- True
+	time elapsed 	- 1899 milliseconds
+	network test 	- False
 
 #5) 
 	success/fail 	- True
