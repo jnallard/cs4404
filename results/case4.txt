@@ -1,27 +1,27 @@
-5 Runs for Test1
+5 Runs for Test4
 
 #1) 
 	success/fail 	- True
 	# sent			- 21
 	# received		- 20
 	% recevied		- 20/21
-	time elapsed 	- 1896 milliseconds
+	time elapsed 	- 1911 milliseconds
 	network test 	- True
 
 #2)
 	success/fail 	- True
-	# sent			- 20
+	# sent			- 21
 	# received		- 20
-	% recevied		- 20/20
-	time elapsed 	- 1903 milliseconds
+	% recevied		- 20/21
+	time elapsed 	- 1898 milliseconds
 	network test 	- True
 
 #3) 
 	success/fail 	- True
-	# sent			- 21
+	# sent			- 20
 	# received		- 20
-	% recevied		- 20/21
-	time elapsed 	- 1896 milliseconds
+	% recevied		- 20/20
+	time elapsed 	- 1905 milliseconds
 	network test 	- True
 
 #4) 
@@ -29,13 +29,13 @@
 	# sent			- 21
 	# received		- 20
 	% recevied		- 20/21
-	time elapsed 	- 1894 milliseconds
+	time elapsed 	- 1908 milliseconds
 	network test 	- True
 
 #5) 
 	success/fail 	- True
-	# sent			- 21
+	# sent			- 20
 	# received		- 20
-	% recevied		- 20/21
-	time elapsed 	- 1903 milliseconds
+	% recevied		- 20/20
+	time elapsed 	- 1897 milliseconds
 	network test 	- True
