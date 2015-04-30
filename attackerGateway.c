@@ -37,9 +37,9 @@ void* disconnectAttacker(struct in_addr* attackerIP, struct in_addr* victimIP){
 	//manageFlow(attackerIP, victimIP, TRUE);
 	addBlockedFlow(attackerIP, victimIP, T_LONG);
 
-	waitMilliseconds(T_LONG);
-	//manageFlow(attackerIP, victimIP, FALSE);
-	removeBlockedFlowAndCountViolations(attackerIP, victimIP);
+	// waitMilliseconds(T_LONG);
+	// //manageFlow(attackerIP, victimIP, FALSE);
+	// removeBlockedFlowAndCountViolations(attackerIP, victimIP);
 
 	pthread_exit(NULL);
 }
@@ -65,7 +65,8 @@ void handleEscalationRequest(AITFMessageListEntry* receivedEntry){
 	if(lastGatewayIP == NULL){
 		printf("Error: cannot find the last gateway's ip in escalation.\n");
 	} else {
-		disconnectAttacker(lastGatewayIP, flow->victimIP);
+		disconnectAttacker(NULL, flow->victimIP);
+		printf("Escalation: block flow from %s\n", convertIPAddress(lastGatewayIP));
 	}
 
 }
