@@ -618,7 +618,8 @@ void updateShadowFilteringTable(){
 int compareIPAddresses(struct in_addr* ip1, struct in_addr* ip2){
 	if(ip1 == NULL || ip2 == NULL)
 	{
-		return ip1 == NULL && ip2 == NULL;
+		if(ip1 == NULL && ip2 == NULL) return TRUE;
+		return FALSE;
 	}
 
 	char ipStr1[INET_ADDRSTRLEN], ipStr2[INET_ADDRSTRLEN];
