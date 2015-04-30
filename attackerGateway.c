@@ -13,6 +13,10 @@ int isDisobedientGateway = FALSE;
 
 
 void sigterm(int signum){
+
+	killThread(aitfListeningThread);
+	killThread(routeRecordThread);
+
 	int optval = 1;
 
 	if(setsockopt(aitfListeningSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval)){
@@ -23,9 +27,6 @@ void sigterm(int signum){
 		printf("close socket for listening AITF messages failed, error: %s\n", strerror(errno));
 
 	}
-
-	killThread(aitfListeningThread);
-	killThread(routeRecordThread);
 	printf("Exiting...\n");
 	exit(1); 
 
