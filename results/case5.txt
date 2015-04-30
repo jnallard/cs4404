@@ -2,40 +2,40 @@
 
 #1) 
 	success/fail 	- True
-	# sent			- 21
+	# sent			- 200
 	# received		- 20
-	% recevied		- 20/21
-	time elapsed 	- 1896 milliseconds
-	network test 	- True
+	% recevied		- 20/200
+	time elapsed 	- 1901 milliseconds
+	network test 	- False
 
 #2)
 	success/fail 	- True
-	# sent			- 20
+	# sent			- 203
 	# received		- 20
-	% recevied		- 20/20
-	time elapsed 	- 1903 milliseconds
-	network test 	- True
+	% recevied		- 20/203
+	time elapsed 	- 1893 milliseconds
+	network test 	- False
 
 #3) 
 	success/fail 	- True
-	# sent			- 21
+	# sent			- 203
 	# received		- 20
-	% recevied		- 20/21
-	time elapsed 	- 1896 milliseconds
-	network test 	- True
+	% recevied		- 20/203
+	time elapsed 	- 1892 milliseconds
+	network test 	- False
 
 #4) 
 	success/fail 	- True
-	# sent			- 21
+	# sent			- 202
 	# received		- 20
-	% recevied		- 20/21
-	time elapsed 	- 1894 milliseconds
-	network test 	- True
+	% recevied		- 20/202
+	time elapsed 	- 1893 milliseconds
+	network test 	- False
 
 #5) 
 	success/fail 	- True
-	# sent			- 21
+	# sent			- 203
 	# received		- 20
 	% recevied		- 20/21
-	time elapsed 	- 1903 milliseconds
+	time elapsed 	- 1888 milliseconds
 	network test 	- True

@@ -8,12 +8,11 @@
 
 int main(int argc, char* argv[]){
 
+	char* spoofingIP = NULL;
 	if(argc > 1){
-		printf("Arg detected\n");
+		spoofingIP = argv[1];
 	}
 	char* hostIP = getIPAddress(INTERFACE);
-
-	printf("Host Interface (%s) Address: [%s]\n", INTERFACE, hostIP);
 
 
 	//Part of this is Recycled/Modified Code from cs4516
@@ -103,6 +102,11 @@ int main(int argc, char* argv[]){
 				RouteRecord* tempRR = readRouteRecord(buffer + 20);
 
 				struct in_addr* victimAddr = getInAddr(destIP);
+				if(spoofingIP != NULL){
+					victimAddr = getInAddr(spoofingIP);
+					printf("Using spoofed Ip Address [%s]\n", spoofingIP);
+				}
+
 				struct in_addr* attackerAddr = getInAddr(srcIP);
 
 				Flow* flow = createFlowStruct(victimAddr, attackerAddr, tempRR, createNonce(victimAddr, attackerAddr), 0, AITF_BLOCKING_REQUEST);
