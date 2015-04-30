@@ -1,3 +1,6 @@
+//shared.c  This is file is used to provide functions to all of our agents
+//jnallard yyan
+
 #include "shared.h"
 
 //This function lets the program sleep for the given milliseconds time
@@ -41,12 +44,15 @@ RouteRecord* createRouteRecord(struct in_addr* ipAddress, long randomValue){
 
 }
 
-
+//This function will add a gateways info to the next available slot in a routerecord struct
 void addGatewayInfo(RouteRecord* routeRecord, struct in_addr* ipAddress, long randomValue){
+
+	//Create the new route record slot
 	RouteRecordSlot *rrSlot = (RouteRecordSlot *)malloc(sizeof(RouteRecordSlot));
 	rrSlot->ipAddress = ipAddress;
 	rrSlot->randomValue = randomValue;
 
+	//Find the next available slot
 	RouteRecordSlot **slotPointer = NULL;
 	short index = routeRecord->index;
 	if(index == 2){
@@ -66,6 +72,7 @@ void addGatewayInfo(RouteRecord* routeRecord, struct in_addr* ipAddress, long ra
 		exit(1);
 	}
 
+	//Assign the route record slot to the route record
 	*slotPointer = rrSlot; 
 	(routeRecord->index)++;
 
@@ -101,66 +108,49 @@ int sendFlow(char* destIP, int port, Flow* flow){
 	char portStr[15];
 	sprintf(portStr, "%d", port);
 
+	//Gets the information about the destination
 	if(getaddrinfo(destIP, portStr, &hints, &res) != 0){ 
 		printf("Error in getaddrinfo() when sending complaint\n");
 		return -1;
 	}
 
+	//Open the socket
 	sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if(sockfd < 0) {
 		printf("Error in socket() when sending complaint\n");
 		return -1;
 	}
 
+	//Connect to the address
 	if(connect(sockfd, res->ai_addr, res->ai_addrlen) != 0){
 		printf("Error in connect() when sending complaint. Error: [%s]\n", strerror(errno));
 
 		return -1;
 	}
 
+	//Once connected, you can send the flow
 	sendFlowWithOpenConnection(sockfd, flow);
 
 	return sockfd;
 
 }
 
+//Send a flow to a destination, using a socket that is already open.
 int sendFlowWithOpenConnection(int connectionFd, Flow* flow){
 	int returnval = 0;
+	//Convert the flow to a string
 	char* flowString = writeFlowStructAsNetworkBuffer(flow);
 
+	//Send the string flow
 	if((returnval = send(connectionFd, flowString, MAX_FLOW_SIZE, 0)) < 0){
 		printf("Error occurred when sending request\n");
 	} else {
 		printf("Request sent\n");
 	}
 
+	//return the amount sent
 	return returnval;
 }
-
-
-Flow* receiveFlowWithOpenConnection(int connectionFd){
-
- 	char buf[2000];
- 	int count;
- 	memset(buf, 0, MAX_FLOW_SIZE + 10);
- 	count = recv(connectionFd, buf, MAX_FLOW_SIZE, 0);
-
- 	//Nothing Received
- 	if(count == 0){
- 		return NULL;
- 	}
-
- 	buf[count] = '\0';
- 	printf("count number %d\n", count);
- 	printf("packet received.\n");
-
- 	//handle AITF message
-	Flow *receivedFlow = readAITFMessage(buf);
-	printf("flow info - nonce 1 [%d], nonce 2 [%d], message type [%d]\n", 
-		receivedFlow->nonce1, receivedFlow->nonce2, receivedFlow->messageType);
-	return receivedFlow;
-}
-
 
 //This function converts a flow to a char buffer, easy to send over network
 char* writeFlowStructAsNetworkBuffer(Flow* flow) {
@@ -220,6 +210,7 @@ char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord){
 
 	if(routeRecord != NULL){
 
+		//copy the index and size into the string
 		memcpy(rrString, &(routeRecord->index), shortSize);
 		memcpy(rrString + shortSize, &(routeRecord->size), shortSize);
 
@@ -227,6 +218,7 @@ char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord){
 		memcpy(rrString + 2 * shortSize, (routeRecord->slot1)->ipAddress, intSize);
 		memcpy(rrString + 2 * shortSize + intSize, &((routeRecord->slot1)->randomValue), longSize);
 
+		//Copy the second slot into the string
 		if(routeRecord->slot2 != NULL){
 			memcpy(rrString + 2 * shortSize + intSize + longSize, (routeRecord->slot2)->ipAddress, intSize);
 			memcpy(rrString + 2 * shortSize + 2 * intSize + longSize, &((routeRecord->slot2)->randomValue), longSize);
@@ -234,6 +226,7 @@ char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord){
 			memset(rrString + 2 * shortSize + intSize + longSize, '\0', intSize + longSize);
 		}
 
+		//Copy the third
 		if(routeRecord->slot3 != NULL){
 			memcpy(rrString + 2 * shortSize + 2 * intSize + 2 * longSize, (routeRecord->slot3)->ipAddress, intSize);
 			memcpy(rrString + 2 * shortSize + 3 * intSize + 2 * longSize, &((routeRecord->slot3)->randomValue), longSize);
@@ -241,6 +234,7 @@ char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord){
 			memset(rrString + 2 * shortSize + 2 * intSize + 2 * longSize, '\0', intSize + longSize);
 		}
 
+		//Copy the fourth
 		if(routeRecord->slot4 != NULL){
 			memcpy(rrString + 2 * shortSize + 3 * intSize + 3 * longSize, (routeRecord->slot4)->ipAddress, intSize);
 			memcpy(rrString + 2 * shortSize + 4 * intSize + 3 * longSize, &((routeRecord->slot4)->randomValue), longSize);
@@ -250,22 +244,21 @@ char* writeRouteRecordAsNetworkBuffer(RouteRecord* routeRecord){
 		}
 	}
 
-
 	return rrString;
-
 }
 
-
-
+//Reads the string version of a route record back into a route record struct
 RouteRecord* readRouteRecord(char* networkLayerPacketInfo){
 	int intSize = sizeof(int);
 	int shortSize = sizeof(short);
 	int longSize = sizeof(long);
 
+	//Read the index and size values
 	RouteRecord* rr = (RouteRecord*)malloc(sizeof(RouteRecord));
 	memcpy(&(rr->index), networkLayerPacketInfo, shortSize);
 	memcpy(&(rr->size), networkLayerPacketInfo + shortSize, shortSize);
 
+	//read the first slot
 	RouteRecordSlot* slot1 = NULL;
 	struct in_addr* slot1IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 
 	memcpy(slot1IPAddress, networkLayerPacketInfo + 2 * shortSize, intSize);
@@ -275,6 +268,7 @@ RouteRecord* readRouteRecord(char* networkLayerPacketInfo){
 		memcpy(&(slot1->randomValue), networkLayerPacketInfo + 2 * shortSize + intSize, longSize);
 	}
 
+	//read the second slot
 	RouteRecordSlot* slot2 = NULL;
 	struct in_addr* slot2IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 
 	memcpy(slot2IPAddress, networkLayerPacketInfo + 2 * shortSize + ROUTE_RECORD_SLOT_SIZE, intSize);
@@ -284,6 +278,7 @@ RouteRecord* readRouteRecord(char* networkLayerPacketInfo){
 		memcpy(&(slot2->randomValue), networkLayerPacketInfo + 2 * shortSize + ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
 	}
 
+	//read the third slot
 	RouteRecordSlot* slot3 = NULL;
 	struct in_addr* slot3IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 	
 	memcpy(slot3IPAddress, networkLayerPacketInfo + 2 * shortSize + 2 * ROUTE_RECORD_SLOT_SIZE, intSize);
@@ -293,6 +288,7 @@ RouteRecord* readRouteRecord(char* networkLayerPacketInfo){
 		memcpy(&(slot3->randomValue), networkLayerPacketInfo + 2 * shortSize + 2 * ROUTE_RECORD_SLOT_SIZE + intSize, longSize);
 	}
 
+	//read the fourth slot
 	RouteRecordSlot* slot4 = NULL;
 	struct in_addr* slot4IPAddress = (struct in_addr*)malloc(sizeof(struct in_addr)); 	
 	memcpy(slot4IPAddress, networkLayerPacketInfo + 2 * shortSize + 3 *ROUTE_RECORD_SLOT_SIZE, intSize);
@@ -317,13 +313,13 @@ void initializeAITFMessageList(){
 	lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
 }
 
-
-
+//Is used to print an error and then exit
 void reportError(char* errorMessage){
 	printf("%s\n", errorMessage);
 	exit(1);
 }
 
+//Creates a thread that is used for listening to packets
 pthread_t createAITFListeningThread(int port){
 	pthread_t thread;
 	//int listeningPortNumber = port;
@@ -336,20 +332,17 @@ pthread_t createAITFListeningThread(int port){
 	return thread;
 }
 
-
-void killThread(pthread_t thread){
-	if(pthread_kill(thread, SIGINT)){
-		reportError("Error killing thread\n");
-	}
-}
-
 //Function ran by newly created thread to listen to incoming complaints
 void* listenToAITFMessage(void *portNum){
+	//Creates the list for storing flows/aitf messages
 	initializeAITFMessageList();
+
+	//Gets the listening port number
 	int* portPtr = (int*) portNum;
 	int port = *portPtr;
 	printf("Port: [%d]\n", port);
 
+	//creates a listening socket
 	aitfListeningSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if(aitfListeningSocket < 0){
 		printf("Error in socket() when listening to AITF message.\n");
@@ -361,29 +354,35 @@ void* listenToAITFMessage(void *portNum){
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = INADDR_ANY;
 
-
+	//Binds the socket
 	if(bind(aitfListeningSocket, (struct sockaddr*)&addr, sizeof(addr)) < 0){
 		printf("Error in bind() when listening to AITF message. \n");
 	}
 
+	//Starts the listening on this socket
 	if(listen(aitfListeningSocket, 20) == -1){
 		printf("Error in listen() when listening to AITF message. \n");
 	}
 	
 	while(1){
-		printf("enter loop for receiving packet\n");
+		printf("enter loop for receiving packets\n");
+
 
 		int clientfd;
 		struct in_addr client_addr;
 		int addrlen = sizeof(client_addr);
+
+		///Accept a new connection as it comes in, storing the client's address
 		clientfd = accept(aitfListeningSocket, (struct sockaddr*)&client_addr, (socklen_t * __restrict__)&addrlen);
 	 	if(clientfd == -1) {
 	 		printf("Error in accept() when listening to AITF message. \n");
 	 	}
 	 	
+	 	//Read the flow from the connection
 		Flow* receivedFlow = receiveFlowWithOpenConnection(clientfd);
 
-		if(compareIPAddresses(&client_addr, receivedFlow->victimIP) == 0){
+		//We can add the flow as long as the client and the victim matching, given that it is a victim complaining about a flow
+		if(compareIPAddresses(&client_addr, receivedFlow->victimIP) == 0  || receivedFlow->messageType != AITF_BLOCKING_REQUEST_VICTIM){
 			updateAITFMessageList(receivedFlow, clientfd);
 
 		} else {
@@ -402,9 +401,8 @@ void* listenToAITFMessage(void *portNum){
 AITFMessageListEntry* receiveAITFMessage(int* clientfd){
 	//lock the AITF message list
 	pthread_mutex_lock(&(lock));
-	// printf("Start receiving AITF message\n");
 
-
+	//Return the first AITF message in the list
 	AITFMessageListEntry* returnedMessage = NULL;
 	if(messageListPtr != NULL){
 		returnedMessage = messageListPtr;
@@ -412,15 +410,41 @@ AITFMessageListEntry* receiveAITFMessage(int* clientfd){
 	}
 
 	pthread_mutex_unlock(&(lock));
-	// printf("Finish receiving AITF message\n");
-
 
 	return returnedMessage;
 	
 }
 
+//Receives a flow from a connection that has already been opened
+Flow* receiveFlowWithOpenConnection(int connectionFd){
+
+ 	char buf[2000];
+ 	int count;
+ 	memset(buf, 0, MAX_FLOW_SIZE + 10);
+
+ 	//Receive the flow
+ 	count = recv(connectionFd, buf, MAX_FLOW_SIZE, 0);
+
+ 	//Nothing Received
+ 	if(count == 0){
+ 		return NULL;
+ 	}
+
+ 	buf[count] = '\0';
+ 	printf("count number %d\n", count);
+ 	printf("packet received.\n");
+
+ 	//Read the buffer as a flow struct
+	Flow *receivedFlow = readAITFMessage(buf);
+	printf("flow info - nonce 1 [%d], nonce 2 [%d], message type [%d]\n", 
+		receivedFlow->nonce1, receivedFlow->nonce2, receivedFlow->messageType);
+	return receivedFlow;
+}
+
 //update AITF message list to add a new entry to its tail
 void updateAITFMessageList(Flow* newAITFMessage, int clientfd){
+
+	//Create the new list entry
 	AITFMessageListEntry *newEntry = (AITFMessageListEntry *)malloc(sizeof(AITFMessageListEntry));
 	newEntry->flow = newAITFMessage;
 	newEntry->clientfd = clientfd;
@@ -429,10 +453,12 @@ void updateAITFMessageList(Flow* newAITFMessage, int clientfd){
 	pthread_mutex_lock(&(lock));
 	printf("Start updating AITF message\n");
 
+	//Appy it as the first if it's null
 	if(messageListPtr == NULL){
 		messageListPtr = newEntry;
 
 	} else {
+		//Otherwise, add it ot the end of the list
 		AITFMessageListEntry *endPointer = messageListPtr;
 
 		while(endPointer->next != NULL){
@@ -447,36 +473,14 @@ void updateAITFMessageList(Flow* newAITFMessage, int clientfd){
 
 }
 
-
-//This function frees memory of a flow struct
-void freeFlow(Flow *flow) {
-	free(flow->attackerIP);
-	free(flow->victimIP);
-	freeRouteRecord(flow->routeRecord);
-	free(flow);
-}
-
-//This function frees memory of a RouteRecord struct
-void freeRouteRecord(RouteRecord *rr){
-	freeRouteRecordSlot(rr->slot1);
-	freeRouteRecordSlot(rr->slot2);
-	freeRouteRecordSlot(rr->slot3);
-	freeRouteRecordSlot(rr->slot4);
-	free(rr);
-}
-
-//This funciton fress memory of a RouteRecordSlot struct
-void freeRouteRecordSlot(RouteRecordSlot *rrs){
-	free(rrs->ipAddress);
-	free(rrs);
-}
-
 //Code learned from http://stackoverflow.com/questions/2283494/get-ip-address-of-an-interface-on-linux
+//Gets the ip address of an interface
 char* getIPAddress(char* interface){
 	int fd;
 	struct ifreq ifr;
 	char* hostIP;
 
+	//Create a socket, and use that to get the interface's name.
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	ifr.ifr_addr.sa_family = AF_INET;
 	strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
@@ -513,6 +517,7 @@ int createNonce(struct in_addr* sourceIP, struct in_addr* destIP){
 	return value;
 }
 
+//Creates to random ints, and places them side by side to create a long random value
 long createLongRandomValue(){
 	long value = 0;
 	long firstRand = ((long) createRandomInt()) << (sizeof(long) * 8 / 2);
@@ -524,6 +529,8 @@ long createLongRandomValue(){
 }
 
 int isFirstNumber = TRUE;
+
+//This function creates a random int, and uses the isFirstNumber to set srand
 int createRandomInt(){
 	if(isFirstNumber == TRUE){
 		isFirstNumber = FALSE;
@@ -544,9 +551,11 @@ void initializeShadowFilteringTableEntry(){
 void addEntryToShadowFilteringTable(Flow* flow){
 	ShadowFilteringTableEntry *entry = (ShadowFilteringTableEntry*)malloc(sizeof(ShadowFilteringTableEntry));
 
+	//Get the current time
 	struct timeval* currentTime = (struct timeval*)malloc(sizeof(struct timeval));
 	gettimeofday(currentTime, NULL);
 
+	//Set the values
 	entry->flow = flow;
 	entry->startTime = currentTime;
 	entry->next = NULL;
@@ -555,8 +564,10 @@ void addEntryToShadowFilteringTable(Flow* flow){
 	pthread_mutex_lock(&(filteringTableLock));
 
 	if(headTableEntry == NULL){
+		//Add it as the head of the list if empty
 		headTableEntry = entry;
 	} else {
+		//Otherwise, store it at the end
 		ShadowFilteringTableEntry *tmp = headTableEntry;
 		while(tmp->next != NULL){
 			tmp = tmp->next;
@@ -579,10 +590,12 @@ int isInShadowFilteringTable(Flow* flow){
 
 	pthread_mutex_lock(&(filteringTableLock));
 
+	//FInd the flow with matching ip addresses
 	while(ptr != NULL){
 		if(compareIPAddresses(attackerIP, (ptr->flow)->attackerIP) == 0 && 
 			compareIPAddresses(victimIP, (ptr->flow)->victimIP) == 0){
 			count = ptr->count;
+			//increment the count if found
 			ptr->count = ptr->count + 1;
 			break;
 		}
@@ -591,6 +604,7 @@ int isInShadowFilteringTable(Flow* flow){
 
 	pthread_mutex_unlock(&(filteringTableLock));
 
+	//rturn the count, zero if not found
 	return count;
 }
 
@@ -602,7 +616,7 @@ void updateShadowFilteringTable(){
 
 	while(headTableEntry != NULL){
 		if(hasTimeElapsed(headTableEntry->startTime, T_LONG) == TRUE) {
-			//delete this entry
+			//if the time has elapsed from the entries addition, delete this entry
 			ShadowFilteringTableEntry* toBeDeleted = headTableEntry;
 			headTableEntry = headTableEntry->next;
 
@@ -611,6 +625,7 @@ void updateShadowFilteringTable(){
 			free(toBeDeleted);
 
 		} else break;
+		//Since we add to this list in order of time, we can stop once we find one that's not expired
 	}
 
 	pthread_mutex_unlock(&(filteringTableLock));
@@ -620,21 +635,21 @@ void updateShadowFilteringTable(){
 
 //This function compares two ip addresses to see if they are the same, and return 0 if they are.
 int compareIPAddresses(struct in_addr* ip1, struct in_addr* ip2){
+	//If an address is set to null, only return true if they are both null
 	if(ip1 == NULL || ip2 == NULL)
 	{
 		if(ip1 == NULL && ip2 == NULL) return TRUE;
 		return FALSE;
 	}
 
+	//Otherwise, compare the strings and return the result
 	char ipStr1[INET_ADDRSTRLEN], ipStr2[INET_ADDRSTRLEN];
 	inet_ntop(AF_INET, ip1, ipStr1, INET_ADDRSTRLEN);
 	inet_ntop(AF_INET, ip2, ipStr2, INET_ADDRSTRLEN);
 	return strcmp(ipStr1, ipStr2);
 }
 
-
-
-
+//Starts the thread for inserting route records into packets going through a gateway
 pthread_t startRouteRecordThread(){
 	pthread_t thread;
 	int arg = 0;
@@ -645,7 +660,8 @@ pthread_t startRouteRecordThread(){
 	return thread;
 }
 
-
+//Checks all of the slots for one matching the given ip address, and if it finds it, will return the comparison
+//of the randomvalue in the slot with the one for the actual gateway
 int checkForCorrectRandomValue(char* ipAddress, long randomValue, Flow* receivedFlow){
 
 	int correctRandomValue = FALSE;
@@ -678,6 +694,7 @@ int checkForCorrectRandomValue(char* ipAddress, long randomValue, Flow* received
 		}
 	}
 
+	//If a slot was found, check the random values
 	if(slot != NULL){
 		if(randomValue == slot->randomValue){
 			correctRandomValue = TRUE;
@@ -686,5 +703,37 @@ int checkForCorrectRandomValue(char* ipAddress, long randomValue, Flow* received
 
 	return correctRandomValue;
 
+}
+
+
+//Kills a thread - Murder is sad.
+void killThread(pthread_t thread){
+	if(pthread_kill(thread, SIGINT)){
+		reportError("Error killing thread\n");
+	}
+}
+
+
+//This function frees memory of a flow struct
+void freeFlow(Flow *flow) {
+	free(flow->attackerIP);
+	free(flow->victimIP);
+	freeRouteRecord(flow->routeRecord);
+	free(flow);
+}
+
+//This function frees memory of a RouteRecord struct
+void freeRouteRecord(RouteRecord *rr){
+	freeRouteRecordSlot(rr->slot1);
+	freeRouteRecordSlot(rr->slot2);
+	freeRouteRecordSlot(rr->slot3);
+	freeRouteRecordSlot(rr->slot4);
+	free(rr);
+}
+
+//This funciton fress memory of a RouteRecordSlot struct
+void freeRouteRecordSlot(RouteRecordSlot *rrs){
+	free(rrs->ipAddress);
+	free(rrs);
 }
 

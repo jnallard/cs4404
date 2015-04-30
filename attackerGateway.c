@@ -1,5 +1,9 @@
-#include "shared.h"
+//attackerGateway.c  This is file is used to represent the attackerGateway in our system, 
+//who will receive block messages from the victim gateway, and respond to the or not,
+//depending upon if it is malicious or not
+//jnallard yyan
 
+#include "shared.h"
 
 extern int aitfListeningSocket;
 pthread_t aitfListeningThread;
@@ -8,20 +12,100 @@ pthread_t routeRecordThread;
 char* ownIPAddress;
 long randomValue;
 
+//The value used for determining the maliciousness of this gatewat
 int isDisobedientGateway = FALSE;
 
+//prototypes for the functions
+void sigterm(int signum);
+void* disconnectAttacker(struct in_addr* attackerIP, struct in_addr* victimIP);
+void handleEscalationRequest(AITFMessageListEntry* receivedEntry);
+void handleAITFHandshake(AITFMessageListEntry *entry);
+void* handleAITFMessage(void *tableEntry);
 
+//This is the main function for starting the gateway and doing its respective actions
+int main(int argc, char* argv[]){
+
+	//Create the function to be handled when a control exit command is detected
+	struct sigaction action;
+	memset(&action, 0, sizeof (struct sigaction));
+	action.sa_handler = sigterm;
+	sigaction(SIGTERM, &action, NULL);
+	sigaction(SIGINT, &action, NULL);
+
+	//This determines if the gateway will be malicious or not
+	if(argc == 2 && (strcmp(argv[1], "false") == 0 || strcmp(argv[1], "FALSE") == 0)){
+		printf("Attacker gateway will respond to handshake but not block the flow.\n");
+		isDisobedientGateway = TRUE;
+	}
+
+	//Get the start time
+	struct timeval startTime;
+	gettimeofday(&startTime, NULL);
+
+	//Create the threads necessary for listening, packet manipulation, and shadow filtering
+	initializeShadowFilteringTableEntry();
+	routeRecordThread = startRouteRecordThread();
+	aitfListeningThread = createAITFListeningThread(TCP_RECEIVING_PORT);
+	AITFMessageListEntry* receivedEntry = NULL;
+
+	//get random value from route record thread
+	randomValue = returnRandomValue();
+
+	//Get the ip address of the gateway
+	ownIPAddress = getIPAddress(INTERFACE);
+
+	while(1){
+		//update shadow filtering table
+		if(hasTimeElapsed(&startTime, T_TABLE_CHECK)){
+			gettimeofday(&startTime, NULL);
+			updateShadowFilteringTable();
+		}
+		if((receivedEntry = receiveAITFMessage()) != NULL){
+			//check if flow contains correct R number
+			if(checkForCorrectRandomValue(ownIPAddress, randomValue, receivedEntry->flow) == TRUE){
+
+				//If the flow is good, create a thread to handle it
+				pthread_t thread;
+				if(pthread_create(&thread, NULL, handleAITFMessage, receivedEntry) != 0){
+					reportError("Error creating thread to handle AITF message\n");
+				}
+
+			} else {
+				//send correct path to victim gateway (We don't actually specify one, since the victim gateway will just 
+				// choose to block the flow locally.)
+				printf("Random value associated with gateway is incorrect.\n");
+				Flow* flow = receivedEntry->flow;
+				flow->messageType = AITF_REQUEST_REPLY_NEW_PATH;
+				sendFlowWithOpenConnection(receivedEntry->clientfd, flow);
+			}
+		}
+		
+		waitMilliseconds(100);
+
+	}
+
+	//Kill the threads being used
+	killThread(aitfListeningThread);
+	killThread(routeRecordThread);
+
+	return 0;
+}
+
+//This function will handle what happens when a control command is given to exit
 void sigterm(int signum){
 
+	//Kill the threads being used
 	killThread(aitfListeningThread);
 	killThread(routeRecordThread);
 
 	int optval = 1;
 
+	//Try to free the port for reuse
 	if(setsockopt(aitfListeningSocket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof optval)){
 		printf("unable to let other processes to use the same socket for listening AITF messages: %s\n", strerror(errno));
 	}
 
+	//Close the socket
 	if(close(aitfListeningSocket) != 0){
 		printf("close socket for listening AITF messages failed, error: %s\n", strerror(errno));
 
@@ -33,12 +117,9 @@ void sigterm(int signum){
 
 //This function stop forwarding flow sending from attackerIP to victimIP
 void* disconnectAttacker(struct in_addr* attackerIP, struct in_addr* victimIP){
-	//manageFlow(attackerIP, victimIP, TRUE);
-	addBlockedFlow(attackerIP, victimIP, T_LONG);
 
-	// waitMilliseconds(T_LONG);
-	// //manageFlow(attackerIP, victimIP, FALSE);
-	// removeBlockedFlowAndCountViolations(attackerIP, victimIP);
+	//Will have the route record system block flows
+	addBlockedFlow(attackerIP, victimIP, T_LONG);
 
 	pthread_exit(NULL);
 }
@@ -64,6 +145,9 @@ void handleEscalationRequest(AITFMessageListEntry* receivedEntry){
 	if(lastGatewayIP == NULL){
 		printf("Error: cannot find the last gateway's ip in escalation.\n");
 	} else {
+		//Since we are using a linear network (only one path) we can protect a client by blocking 
+		//all upstream traffic to it, since that would be the equivalent as blocking packets from the
+		//next router
 		disconnectAttacker(NULL, flow->victimIP);
 		printf("Escalation: block flow from %s\n", convertIPAddress(lastGatewayIP));
 	}
@@ -116,15 +200,10 @@ void handleAITFHandshake(AITFMessageListEntry *entry){
 	//Wait T-temp here
 	waitMilliseconds(T_TEMP * 2);
 	
-	//TODO check to see if the flow continues and disconnect A??
-	//remove temporary filter after t-temp and add to shadow filtering table
-	//manageFlow(ackFlow->attackerIP, ackFlow->victimIP, FALSE);
-
-	printf("About to remove filter. \n");
+	//remove temporary filter after t-temp
 	int messageCountViolations = removeBlockedFlowAndCountViolations(ackFlow->attackerIP, ackFlow->victimIP);
-	printf("Temporary filter removed. \n");
 
-
+	//If the flow disobeyed and kept attacking, block it. Otherwise put it in the shadow filtering table
 	if(messageCountViolations > 0){
 		disconnectAttacker(flow->attackerIP, NULL);
 	} else {
@@ -161,68 +240,4 @@ void* handleAITFMessage(void *tableEntry){
 
 	pthread_exit(NULL);
 
-}
-
-int main(int argc, char* argv[]){
-
-	struct sigaction action;
-
-	memset(&action, 0, sizeof (struct sigaction));
-	action.sa_handler = sigterm;
-	sigaction(SIGTERM, &action, NULL);
-	sigaction(SIGINT, &action, NULL);
-
-	//check for arguments
-	if(argc == 2 && (strcmp(argv[1], "false") == 0 || strcmp(argv[1], "FALSE") == 0)){
-		printf("Attacker gateway will respond to handshake but not block the flow.\n");
-		isDisobedientGateway = TRUE;
-	}
-
-	struct timeval startTime;
-	gettimeofday(&startTime, NULL);
-
-	initializeShadowFilteringTableEntry();
-	routeRecordThread = startRouteRecordThread();
-	aitfListeningThread = createAITFListeningThread(TCP_RECEIVING_PORT);
-	AITFMessageListEntry* receivedEntry = NULL;
-
-	//get random value from route record thread
-	randomValue = returnRandomValue();
-
-	ownIPAddress = getIPAddress(INTERFACE);
-
-	while(1){
-		//update shadow filtering table
-		if(hasTimeElapsed(&startTime, T_TABLE_CHECK)){
-			gettimeofday(&startTime, NULL);
-			updateShadowFilteringTable();
-		}
-		if((receivedEntry = receiveAITFMessage()) != NULL){
-			//check if flow contains correct R number
-			if(checkForCorrectRandomValue(ownIPAddress, randomValue, receivedEntry->flow) == TRUE){
-
-				pthread_t thread;
-				if(pthread_create(&thread, NULL, handleAITFMessage, receivedEntry) != 0){
-					reportError("Error creating thread to handle AITF message\n");
-				}
-
-			} else {
-				//send correct path to victim gateway
-				printf("Random value associated with gateway is incorrect.\n");
-				Flow* flow = receivedEntry->flow;
-				flow->messageType = AITF_REQUEST_REPLY_NEW_PATH;
-
-				sendFlowWithOpenConnection(receivedEntry->clientfd, flow);
-
-			}
-		}
-		
-		waitMilliseconds(100);
-
-	}
-
-	killThread(aitfListeningThread);
-	killThread(routeRecordThread);
-
-	return 0;
 }
