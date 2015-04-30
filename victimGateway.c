@@ -83,7 +83,7 @@ void* handleFlow(void* flowPtr){
 	char* ownIPAddress = getIPAddress(INTERFACE);
 
 	if(checkForCorrectRandomValue(ownIPAddress, randomValue, flow) == TRUE){
-		printf("The random value does not match for this gateway.\n")
+		printf("The random value does not match for this gateway.\n");
 		pthread_exit(NULL);
 	}
 
