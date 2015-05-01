@@ -39,3 +39,11 @@
 	% recevied		- 60/203
 	time elapsed 	- 8120 milliseconds
 	network test 	- True
+
+Average Case 
+	success/fail 	- True
+	# sent			- 203
+	# received		- 60
+	% recevied		- 60/203
+	time elapsed 	- 8460.4 milliseconds
+	network test 	- True

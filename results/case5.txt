@@ -36,6 +36,14 @@
 	success/fail 	- True
 	# sent			- 203
 	# received		- 20
-	% recevied		- 20/21
+	% recevied		- 20/203
 	time elapsed 	- 1888 milliseconds
+	network test 	- True
+
+Average Case
+	success/fail 	- True
+	# sent			- 203
+	# received		- 20
+	% recevied		- 20/203
+	time elapsed 	- 1893.4 milliseconds
 	network test 	- True

@@ -1,7 +1,7 @@
 5 Runs for Test7
 
 #1) 
-	success/fail 	- True
+	success/fail 	- False
 	# sent			- 213
 	# received		- 213
 	% recevied		- 213/213
@@ -9,7 +9,7 @@
 	network test 	- True
 
 #2)
-	success/fail 	- True
+	success/fail 	- False
 	# sent			- 202
 	# received		- 202
 	% recevied		- 202/202
@@ -17,7 +17,7 @@
 	network test 	- True
 
 #3) 
-	success/fail 	- True
+	success/fail 	- False
 	# sent			- 203
 	# received		- 203
 	% recevied		- 203/203
@@ -25,7 +25,7 @@
 	network test 	- True
 
 #4) 
-	success/fail 	- True
+	success/fail 	- False
 	# sent			- 202
 	# received		- 202
 	% recevied		- 20/21
@@ -33,9 +33,17 @@
 	network test 	- True
 
 #5) 
-	success/fail 	- True
+	success/fail 	- False
 	# sent			- 203
 	# received		- 203
 	% recevied		- 203/203
 	time elapsed 	- 20975 milliseconds
+	network test 	- True
+
+Average Case
+	success/fail 	- False
+	# sent			- 203
+	# received		- 203
+	% recevied		- 203/203
+	time elapsed 	- -1
 	network test 	- True
